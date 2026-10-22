@@ -1,0 +1,1970 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DPWH Requisition Slip</title>
+<!-- Makes PC and phone offer "Install". Ignored inside Apps Script. -->
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#08295F">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="icons/icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+    /* Bureau of Equipment look: tokens copied from the BOE Employee System */
+  :root{
+    --orange:#FF7A33; --orange-2:#F26522;
+    --navy-0:#061E45; --navy-1:#08295F; --navy-2:#0D47A1; --navy-3:#1658C2;
+    --grad:linear-gradient(100deg,#061E45 0%,#08295F 40%,#0D47A1 75%,#1658C2 100%);
+    --grad-o:linear-gradient(100deg,#D9531A 0%,#F26522 45%,#FF8A47 100%);
+    --bg:#EEF2F8; --card:#ffffff; --soft:#F3F5F9; --ink:#1d1d1f; --head:#08295F; --muted:#626a78;
+    --line:#E5E7EC; --line-2:#D3DAE5; --dots:rgba(6,30,69,.055);
+    --plantilla:#0D47A1; --plantilla-soft:#E3ECFA; --contract:#D9531A; --contract-soft:#FFEDE3;
+    --people:#1d7a45; --people-soft:#E1F3E8; --bad:#B42318; --bad-soft:#FDE8E6; --warn:#8F5400; --warn-soft:#FFF1D6;
+    --r:16px; --r-sm:10px;
+    --shadow:0 12px 32px rgba(6,30,69,.24); --shadow-hi:0 26px 56px rgba(6,30,69,.36);
+    --shadow-card:0 8px 22px rgba(6,30,69,.08); --shadow-card-hi:0 18px 38px rgba(6,30,69,.16);
+    --ease:cubic-bezier(.22,.61,.36,1); --io:cubic-bezier(.77,0,.18,1);
+    --cond:"Barlow Condensed","Arial Narrow",sans-serif;
+    --body:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --waves:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 600 120' preserveAspectRatio='none'%3E%3Cg fill='none' stroke='white' stroke-width='1.4'%3E%3Cpath d='M0 60 Q75 20 150 60 T300 60 T450 60 T600 60'/%3E%3Cpath d='M0 85 Q75 45 150 85 T300 85 T450 85 T600 85'/%3E%3C/g%3E%3C/svg%3E");
+    /* older names used all through the page, now pointing at the BOE colours */
+    --navy:var(--navy-1); --navy-soft:var(--plantilla-soft); --orange-soft:var(--contract-soft);
+    --ok:var(--people); --ok-bg:var(--people-soft); --bad-bg:var(--bad-soft); --warn-bg:var(--warn-soft); --field:var(--soft);
+    --pad:14px;
+    color-scheme:light;
+  }
+
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;overflow:hidden;overscroll-behavior:none}
+  body{background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-size:15px}
+
+  /* fixed three-part shell: nothing outside .mid ever moves */
+  .app{position:fixed;top:0;right:0;bottom:0;left:0;display:flex;flex-direction:column;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+  .hdr{flex:none;padding:10px var(--pad) 8px;border-bottom:1px solid var(--line)}
+  .mid{flex:1;min-height:0;position:relative;overflow:hidden}
+  .pane{position:absolute;top:0;right:0;bottom:0;left:0;display:flex;flex-direction:column;
+    padding:12px var(--pad);overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .ftr{flex:none;padding:10px var(--pad) calc(10px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--line);display:flex;gap:10px}
+  /* The tracking page puts its buttons in its own column and leaves this empty.
+     An empty bar should not take up space — but every other screen keeps it. */
+  .ftr:empty{display:none;padding:0;border-top:0}
+
+  .ttl{display:flex;align-items:center;gap:9px}
+  .mk{width:30px;height:30px;flex:none;border-radius:8px;background:var(--navy);color:#fff;
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px}
+  .ttl h1{margin:0;font-size:15px;font-weight:700;line-height:1.1}
+  .ttl p{margin:1px 0 0;font-size:11.5px;color:var(--muted)}
+
+  /* wizard progress */
+  .bar{display:flex;gap:4px;margin-top:9px}
+  .bar i{flex:1;height:4px;border-radius:2px;background:var(--line)}
+  .bar i.on{background:var(--navy)}
+  .stepname{margin:7px 0 0;font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.2px}
+
+  label{display:block;font-size:12.5px;font-weight:600;margin:0 0 5px;color:var(--muted)}
+  .req{color:var(--bad)}
+  input{width:100%;padding:12px;border-radius:11px;border:1px solid var(--line);
+    background:var(--field);color:var(--ink);font-size:16px;outline:none}
+  input:focus{border-color:var(--navy);box-shadow:0 0 0 3px var(--navy-soft)}
+  .f{margin-bottom:12px}
+  /* flexbox, not grid — older Android browsers have no CSS Grid */
+  .g2{display:flex;flex-wrap:wrap;margin-right:-10px}
+  .g2 > .f{flex:1 1 40%;min-width:0;margin-right:10px}
+  .sect{font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+    color:var(--muted);margin:2px 0 9px}
+
+  .btn{flex:1;border:0;border-radius:12px;cursor:pointer;background:var(--navy);color:#fff;
+    font:inherit;font-weight:700;font-size:16px;padding:14px;min-height:50px}
+  .btn:active{transform:translateY(1px)}
+  .btn[disabled]{opacity:.55;cursor:not-allowed}
+  .btn.sec{background:transparent;color:var(--navy);border:1px solid var(--line);flex:0 0 34%}
+  .btn.go{background:var(--ok)}
+
+  .msg{font-size:13.5px;padding:10px 12px;border-radius:10px;line-height:1.45;margin-bottom:10px}
+  .msg.err{background:var(--bad-bg);color:var(--bad)}
+  .msg.ok{background:var(--ok-bg);color:var(--ok)}
+
+  /* items */
+  .it{display:flex;gap:8px;margin-bottom:8px;align-items:center}
+  .it input{padding:11px;font-size:15px}
+  .it input[data-k="description"]{flex:1 1 auto;min-width:0}
+  .it input[data-k="quantity"]{flex:0 0 86px;width:86px}
+  .it .x{flex:0 0 40px;border:1px solid var(--line);background:var(--field);color:var(--muted);
+    border-radius:10px;height:44px;cursor:pointer;font-size:18px}
+  .ith{display:flex;gap:8px;font-size:10.5px;
+    color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px}
+  .ith div:first-child{flex:1 1 auto;min-width:0}
+  .ith div:nth-child(2){flex:0 0 86px}
+  .ith div:last-child{flex:0 0 40px}
+  .add{width:100%;margin-top:2px;background:transparent;border:1px dashed var(--line);
+    color:var(--navy);border-radius:11px;padding:11px;cursor:pointer;font:inherit;font-weight:600;font-size:13.5px}
+  .itemlist{flex:1;min-height:0;overflow-y:auto}
+
+  /* signature */
+  .padwrap{flex:1;min-height:150px;display:flex;flex-direction:column}
+  .pad{flex:1;min-height:0;border:1px solid var(--line);border-radius:12px;background:var(--field);position:relative}
+  .pad canvas{width:100%;height:100%;display:block;touch-action:none;border-radius:12px}
+  .pad .ph{position:absolute;left:14px;bottom:12px;color:var(--muted);font-size:12.5px;pointer-events:none}
+  .padbar{display:flex;justify-content:space-between;align-items:center;margin-top:7px}
+  .padbar span{font-size:12px;color:var(--muted)}
+  .clr{background:transparent;border:1px solid var(--line);color:var(--muted);
+    border-radius:9px;padding:7px 14px;font:inherit;font-size:12.5px;cursor:pointer}
+
+  /* tabs */
+  .tabs{flex:none;display:flex;gap:4px;background:var(--field);border-radius:11px;padding:4px;margin-bottom:10px}
+  .tabs button{flex:1;border:0;background:transparent;color:var(--muted);font:inherit;
+    font-weight:700;font-size:13.5px;padding:9px;border-radius:8px;cursor:pointer}
+  .tabs button.on{background:var(--bg);color:var(--navy);box-shadow:0 1px 2px rgba(16,24,40,.1)}
+
+  /* the A4 slip, scaled down to fit — this is what removes the sideways scroll */
+  .slipwrap{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .slipbox{position:relative;overflow:hidden;background:#fff;border:1px solid var(--line);border-radius:6px}
+  .slipbox > .ris-page{position:absolute !important;top:0;left:0;transform-origin:top left}
+
+  /* ================= tracking page =================
+     Phone: one column, the Document / Details tabs switch the bottom half.
+     Laptop and up: three columns —
+       1  how far along the slip is (fills the whole height)
+       2  the code and the fuel, the details, then the buttons
+       3  the slip itself, taking everything that is left          */
+  .stat3{flex:1;min-height:0;display:flex;flex-direction:column}
+  .stat3 > .s3flow{flex:none}
+  .stat3 > .s3mid{display:flex;flex-direction:column;min-height:0}
+  .stat3 > .s3doc{flex:1;min-height:0;display:flex;flex-direction:column}
+  .stat3 > .s3btn{order:5;flex:none;display:flex;gap:10px;padding-top:10px}
+  .stat3 > .s3btn .btn{flex:1}
+  .stat3[data-tab="doc"] .s3det{display:none}
+  .stat3[data-tab="det"] > .s3doc{display:none}
+
+  /* the code and the fuel, side by side */
+  .s3head{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;
+    background:var(--card);border:1px solid var(--line);border-left:5px solid var(--orange);
+    border-radius:15px;padding:15px 18px;box-shadow:var(--shadow);margin-bottom:12px}
+  .s3code{min-width:0}                      /* long fuel names must not squeeze the code out */
+  .s3code b{display:block;font:800 1.8rem/1 var(--cond);letter-spacing:.07em;color:var(--navy);
+    overflow-wrap:anywhere}
+  .s3code span{display:block;margin-top:5px;font:600 .67rem/1 var(--cond);letter-spacing:.15em;
+    text-transform:uppercase;color:var(--muted)}
+  .s3fuel{text-align:right;flex:0 1 auto;min-width:0;max-width:48%}
+  .s3fuel b{display:block;font:800 1.8rem/1 var(--cond);letter-spacing:.03em;color:var(--orange)}
+  .s3fuel span{display:block;margin-top:5px;font-size:.76rem;font-weight:600;color:var(--muted);
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* a label's little picture */
+  .dl .r span:first-child{display:flex;align-items:center;gap:7px}
+  .dl .r svg{width:15px;height:15px;flex:none;stroke:var(--orange);stroke-width:1.9;
+    fill:none;stroke-linecap:round;stroke-linejoin:round;opacity:.9}
+
+  @media (min-width:980px){
+    .mid .pane{padding:10px 14px}
+    .stat3{display:grid;
+      grid-template-columns:minmax(210px,265px) minmax(320px,395px) 1fr;
+      grid-template-rows:1fr auto;
+      gap:12px 16px;align-items:stretch}
+    .stat3 > .s3flow{grid-column:1;grid-row:1/span 2;min-height:0}
+    .stat3 > .s3mid {grid-column:2;grid-row:1;min-height:0}
+    .stat3 > .s3btn {grid-column:2;grid-row:2;padding-top:0}
+    .stat3 > .s3doc {grid-column:3;grid-row:1/span 2;min-height:0}
+    .stat3 .tabs{display:none}                 /* both halves are on screen together */
+    .stat3[data-tab] .s3det{display:flex}
+    .stat3[data-tab] > .s3doc{display:flex}
+
+    /* the flow, stretched to the full height of the screen */
+    .s3flow .steps{display:flex;flex-direction:column;height:100%;margin:0;
+      padding:20px 18px;background:var(--card);border:1px solid var(--line);
+      border-radius:15px;box-shadow:var(--shadow)}
+    .s3flow .st{flex:1;display:flex;align-items:flex-start;gap:14px;text-align:left;position:relative}
+    .s3flow .st:last-child{flex:0 0 auto}
+    .s3flow .st .d{width:34px;height:34px;margin:0;flex:none;font-size:15px;border-width:3px;position:relative;z-index:1}
+    .s3flow .st .l{font-size:14.5px;line-height:34px;color:var(--ink)}
+    .s3flow .st:not(.done):not(.act):not(.ret) .l{color:var(--muted);font-weight:600}
+    .s3flow .st:not(:last-child):before{content:"";position:absolute;left:16px;top:36px;bottom:-2px;
+      width:3px;border-radius:2px;background:var(--line)}
+    .s3flow .st.done:not(:last-child):before{background:var(--ok)}
+
+    /* the rows share out whatever height is left, so nothing is blank */
+    .stat3 .s3det{flex:1;min-height:0;display:flex;flex-direction:column}
+    .stat3 .s3det .dl{flex:1;min-height:0;display:flex;flex-direction:column;overflow-y:auto}
+    .stat3 .s3det .dl .r{flex:1 0 auto;align-items:center;padding:9px 12px}
+    .stat3 .s3det .dl .r:first-child{border-top-left-radius:12px;border-top-right-radius:12px}
+    .stat3 .s3det .dl .r:last-child{border-bottom:0;border-bottom-left-radius:12px;border-bottom-right-radius:12px}
+  }
+
+  /* the notice that drifts in over the screen, then fades */
+  .toast{position:fixed;left:50%;top:20px;z-index:10000;max-width:min(560px,92vw);
+    padding:14px 18px;border-radius:15px;font-size:.94rem;line-height:1.45;
+    box-shadow:0 16px 40px rgba(6,30,69,.22);pointer-events:none;
+    opacity:0;transform:translate(-50%,-20px);
+    transition:opacity .5s var(--ease),transform .5s var(--ease)}
+  .toast.in{opacity:1;transform:translate(-50%,0)}
+  .toast.ok  {background:var(--ok-bg);color:var(--ok);border:1px solid rgba(25,134,79,.22)}
+  .toast.warn{background:var(--warn-bg);color:var(--warn);border:1px solid rgba(143,84,0,.22)}
+  .toast.err {background:var(--bad-bg);color:var(--bad);border:1px solid rgba(180,35,24,.22)}
+  @media (max-width:600px){ .toast{top:12px;font-size:.86rem;padding:12px 14px} }
+  @media (prefers-reduced-motion:reduce){ .toast{transition:opacity .2s linear} }
+
+  /* compact stepper */
+  .steps{flex:none;display:flex;gap:3px;margin-bottom:10px}
+  .st{flex:1;text-align:center}
+  .st .d{width:22px;height:22px;border-radius:50%;margin:0 auto 4px;display:flex;align-items:center;
+    justify-content:center;font-size:11px;font-weight:700;background:var(--bg);color:var(--muted);
+    border:2px solid var(--line)}
+  .st .l{font-size:9.5px;color:var(--muted);font-weight:600;line-height:1.15}
+  .st.done .d{background:var(--ok);border-color:var(--ok);color:#fff}
+  .st.act .d{background:var(--navy);border-color:var(--navy);color:#fff}
+  .st.act .l{color:var(--ink)}
+
+  /* detail list */
+  .dl{flex:1;min-height:0;overflow-y:auto}
+  .dl .r{display:flex;gap:8px;padding:9px 2px;border-bottom:1px solid var(--line)}
+  .dl .r span:first-child{flex:0 0 40%;color:var(--muted);font-size:12.5px}
+  .dl .r span:last-child{flex:1 1 auto;min-width:0;font-weight:600;font-size:13.5px;word-break:break-word}
+  /* own names on purpose: a bare ".bad" is the red ring used for an invalid
+     form field, and these values were picking it up */
+  .dl .r span.v-done{color:var(--ok)}          /* Signed, Completed, Released */
+  .dl .r span.v-wait{color:var(--bad)}         /* Not released, Cancelled */
+
+  /* verdict card */
+  .card{flex:none;border-radius:14px;padding:20px 16px;text-align:center;margin-bottom:10px}
+  .card.ok{background:var(--ok-bg)} .card.bad{background:var(--bad-bg)}
+  .card .b{width:54px;height:54px;border-radius:50%;margin:0 auto 9px;display:flex;align-items:center;
+    justify-content:center;font-size:30px;font-weight:700;color:#fff}
+  .card.ok .b{background:var(--ok)} .card.bad .b{background:var(--bad)}
+  .card h2{margin:0;font-size:20px;font-weight:800;letter-spacing:.04em}
+  .card.ok h2{color:var(--ok)} .card.bad h2{color:var(--bad)}
+  .card p{margin:5px 0 0;font-size:13px;color:var(--muted);line-height:1.45}
+
+  .mid.center{display:flex;align-items:center;justify-content:center}
+  .note{font-size:12.5px;color:var(--muted);text-align:center;line-height:1.5}
+  [hidden]{display:none!important}
+
+  /* ===== DPWH theme layer ===== */
+    @keyframes spin{to{transform:rotate(360deg)}}
+  .mid{background:var(--bg)}
+  .pane{animation:glide .35s cubic-bezier(.2,.8,.2,1)}
+  @keyframes glide{from{opacity:.4;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .sect{color:var(--navy)}
+  input,textarea{background:var(--card)}
+  input:focus,textarea:focus{border-color:var(--navy-2);box-shadow:0 0 0 3px var(--navy-soft)}
+  .ftr{background:var(--card);box-shadow:0 -6px 18px -14px rgba(6,30,69,.4)}
+  .btn{background:linear-gradient(135deg,var(--navy),var(--navy-2));box-shadow:var(--shadow);transition:transform .2s ease,box-shadow .2s ease,opacity .2s}
+  .btn.go{background:linear-gradient(135deg,var(--orange),var(--orange-2))}
+  .btn.sec{background:var(--card);color:var(--navy);border:1px solid var(--line);box-shadow:none}
+  .btn.ret{background:var(--card);color:var(--orange);border:1.5px solid var(--orange);box-shadow:none;flex:0 0 32%}
+  .add{color:var(--navy-2)}
+  .msg.warn{background:var(--orange-soft);color:var(--warn);border-left:4px solid var(--orange)}
+  .tabs{background:var(--navy-soft)}
+  .tabs button.on{background:var(--card);color:var(--navy)}
+  .st.act .d{background:var(--navy);border-color:var(--navy)}
+  .st.ret .d{background:var(--orange);border-color:var(--orange);color:#fff}
+  .card{box-shadow:var(--shadow);border:1px solid var(--line)}
+  .slipbox{box-shadow:var(--shadow)}
+  .dl .r{background:var(--card)}
+  textarea{width:100%;padding:12px;border-radius:11px;border:1px solid var(--line);color:var(--ink);font:inherit;font-size:16px;resize:vertical;outline:none}
+
+  /* bottom sheet (Return with remarks) */
+
+  /* admin dashboard */
+  .dash{max-width:1100px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:var(--shadow);
+    border-top:3px solid var(--k,var(--navy));cursor:pointer;transition:transform .2s ease}
+  .kpi:hover{transform:translateY(-2px)}
+  .kpi .n{font-size:26px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums;line-height:1.1}
+  .kpi .l{font-size:12px;color:var(--muted);font-weight:600;margin-top:3px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow);min-width:0}
+  .panel h3{margin:0 0 10px;font-size:14px;color:var(--navy);display:flex;align-items:center;gap:7px}
+  .panel h3 svg{width:17px;height:17px;stroke:var(--orange);fill:none;stroke-width:2}
+  .twocol{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+  .hb{display:grid;grid-template-columns:minmax(90px,38%) 1fr 54px;gap:8px;align-items:center;font-size:12.5px;margin:6px 0}
+  .hb .lab{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+  .hb .trk{height:10px;background:var(--navy-soft);border-radius:6px;overflow:hidden}
+  .hb .fil{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--navy),var(--navy-2));transition:width .6s ease}
+  .hb .v{text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:var(--navy)}
+  .cols{display:flex;align-items:flex-end;gap:10px;height:150px;padding-top:6px}
+  .cols .c{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end;min-width:0}
+  .cols .bar2{width:100%;max-width:46px;border-radius:7px 7px 3px 3px;background:linear-gradient(180deg,var(--orange-2),var(--orange));transition:height .6s ease}
+  .cols .cv{font-size:11.5px;font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums}
+  .cols .cl{font-size:11px;color:var(--muted)}
+  .empty{font-size:13px;color:var(--muted);padding:14px 0;text-align:center}
+  .tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .tools input{flex:1 1 220px;padding:10px 12px;font-size:14px}
+  .chip{border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:999px;padding:6px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+  .chip.on{background:var(--navy);border-color:var(--navy);color:#fff}
+  .tbl{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+  .tbl table{border-collapse:collapse;width:100%;min-width:760px;font-size:13px}
+  .tbl th{background:var(--navy-soft);color:var(--navy);text-align:left;padding:9px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.05em}
+  .tbl td{padding:9px 10px;border-top:1px solid var(--line);vertical-align:top}
+  .tbl td.num{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+  .tbl .code{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;color:var(--navy)}
+  .pill{display:inline-block;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap}
+  .p-pending{background:var(--navy-soft);color:var(--navy)}
+  .p-returned{background:var(--orange-soft);color:var(--contract)}
+  .p-ready{background:#e3efff;color:#0b4fb3}
+
+  .p-received{background:var(--ok-bg);color:var(--ok)}
+  .p-cancelled{background:#eceef3;color:#5b6077}
+  .pinbox{max-width:340px;margin:30px auto 0;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:var(--shadow);
+    display:flex;flex-direction:column;gap:12px;text-align:center}
+  .pinbox img{width:64px;height:64px;margin:0 auto}
+  .pinbox h2{margin:0;font-size:18px;color:var(--navy)}
+  .pinbox input{text-align:center;letter-spacing:6px;font-size:20px}
+  /* auto-fill hints, vehicle card, warnings, summary, tools */
+  .hint{font-size:12px;margin-top:6px;color:var(--ok);display:flex;align-items:center;gap:6px;min-height:16px}
+  .hint.off{color:var(--muted)}
+  .vcard{background:linear-gradient(135deg,var(--navy-soft),#fff);border:1px solid var(--line);border-left:4px solid var(--navy);
+    border-radius:12px;padding:12px 14px;margin:-2px 0 12px;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:12.5px;
+    animation:glide .3s ease}
+  .vcard b{display:block;color:var(--navy);font-size:13.5px}
+  .vcard span{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+  .vcard .wide{grid-column:1/-1}
+  .warnbox{font-size:13px;line-height:1.45;padding:10px 12px;border-radius:10px;background:var(--orange-soft);color:var(--warn);
+    border-left:4px solid var(--orange);margin:4px 0 10px}
+  .warnbox:empty{display:none}
+
+  .toolrow{display:flex;flex-wrap:wrap;gap:8px}
+  .tool{border:1px solid var(--line);background:var(--card);color:var(--navy);border-radius:10px;padding:9px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s ease}
+  .tool.arm{background:var(--orange);border-color:var(--orange);color:#fff}
+  .toolmsg{font-size:12.5px;color:var(--muted);margin-top:8px}
+
+  /* ===== one-page form: one column on a phone, two on a desktop ===== */
+  .form1{display:grid;grid-template-columns:1fr;gap:14px;max-width:1080px;margin:0 auto;width:100%}
+  .fcol{display:flex;flex-direction:column;gap:14px;min-width:0}
+  .col-full{min-width:0}
+  .col-full:empty{display:none}
+  .fs{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px 16px 6px;box-shadow:var(--shadow);min-width:0}
+  .fs .sect{margin-top:0}
+  .s-items .itemlist{flex:none;max-height:none;overflow:visible}
+  .s-sign{padding-bottom:14px}
+  .s-sign .padwrap{flex:none;height:180px;min-height:180px}
+  .bad{border-color:var(--bad)!important;box-shadow:0 0 0 3px var(--bad-bg)!important}
+  @media (min-width:900px){
+    .form1{grid-template-columns:1fr 1fr;gap:18px;padding:6px 8px 20px}
+    .col-full{grid-column:1/-1}
+    .s-sign .padwrap{height:200px}
+    .ftr .btn{max-width:420px;margin-left:auto}
+  }
+  /* find-my-slip box on the home page */
+  .findbox{flex:none;background:linear-gradient(135deg,var(--navy-soft),#fff);border:1px solid var(--line);border-left:4px solid var(--orange);
+    border-radius:14px;padding:12px 14px;margin-bottom:16px;box-shadow:var(--shadow)}
+  .fb-t{font-size:12px;font-weight:800;color:var(--navy);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px}
+  .fb-row{display:flex;gap:8px}
+  .fb-row input{flex:1;min-width:0;font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+  .fb-row input::placeholder{text-transform:none;letter-spacing:1px;font-weight:400}
+  .fb-row button{flex:0 0 auto;border:0;border-radius:11px;padding:0 18px;font:inherit;font-weight:700;color:#fff;cursor:pointer;
+    background:linear-gradient(135deg,var(--navy),var(--navy-2));box-shadow:var(--shadow)}
+  .fb-row button[disabled]{opacity:.6}
+
+  /* the receive card on the tracking page */
+  .rcv-card{flex:none;text-align:center;border-radius:18px;padding:22px 18px 16px;margin-bottom:12px;color:#fff;position:relative;overflow:hidden;
+    background:linear-gradient(135deg,var(--orange),var(--orange-2));box-shadow:0 18px 36px -20px rgba(242,101,34,.85);
+    animation:rise .45s cubic-bezier(.2,.8,.2,1)}
+  .rcv-card.done{background:linear-gradient(135deg,var(--ok),#35a96b);box-shadow:0 18px 36px -20px rgba(29,122,69,.85)}
+  .rcv-card::before{content:"";position:absolute;right:-50px;top:-70px;width:190px;height:190px;border-radius:50%;border:22px solid rgba(255,255,255,.12);pointer-events:none}
+  .rcv-ic{width:64px;height:64px;border-radius:50%;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:32px;font-weight:800;
+    background:rgba(255,255,255,.22);position:relative;z-index:1;animation:pop .5s cubic-bezier(.2,.8,.2,1)}
+  @keyframes pop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+  @keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .rcv-card h2{margin:0;font-size:21px;font-weight:800;letter-spacing:.01em;position:relative;z-index:1}
+  .rcv-card p{margin:6px 0 0;font-size:14px;opacity:.95;line-height:1.45;position:relative;z-index:1}
+  .rcv-sum{display:flex;gap:14px;align-items:center;text-align:left;margin-top:14px;padding:12px 14px;border-radius:13px;
+    background:rgba(255,255,255,.95);color:var(--ink);position:relative;z-index:1}
+  .rcv-qty{flex:none;text-align:center;line-height:1}
+  .rcv-qty b{display:block;font-size:38px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .rcv-qty span{display:block;font-size:10.5px;font-weight:800;color:var(--navy-2);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+  .rcv-meta{min-width:0;font-size:12.5px;color:var(--muted);line-height:1.4}
+  .rcv-meta b{display:block;color:var(--ink);font-size:13.5px;word-break:break-word}
+  .rcv-meta span{display:block}
+  .rcv-code{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:800;color:var(--navy);letter-spacing:.06em;margin-top:2px}
+  .rcv-card .msg.err{text-align:left;margin:10px 0 0;position:relative;z-index:1}
+
+  @keyframes pulseBtn{0%,100%{box-shadow:0 12px 26px -16px rgba(242,101,34,.9)}50%{box-shadow:0 16px 34px -12px rgba(242,101,34,1)}}
+  @media (prefers-reduced-motion:reduce){ .pane,.vcard,.rcv-card,.rcv-ic{animation:none} }
+
+  /* auto-return pill: "Going home in 5… [Stay here]" */
+  .ah{position:fixed;left:50%;bottom:calc(86px + env(safe-area-inset-bottom));z-index:60;display:flex;align-items:center;gap:11px;
+    padding:8px 8px 8px 10px;border-radius:999px;color:#fff;font-size:13.5px;font-weight:700;white-space:nowrap;
+    background:linear-gradient(135deg,var(--navy),var(--navy-2));box-shadow:0 16px 30px -14px rgba(6,30,69,.8);
+    opacity:0;transform:translate(-50%,18px) scale(.96);transition:opacity .35s ease,transform .4s cubic-bezier(.2,.8,.2,1)}
+  .ah.on{opacity:1;transform:translate(-50%,0) scale(1)}
+  .ah svg{width:26px;height:26px;flex:none;transform:rotate(-90deg)}
+  .ah circle{fill:none;stroke-width:3}
+  .ah .bgc{stroke:rgba(255,255,255,.22)}
+  .ah .fgc{stroke:var(--orange-2);stroke-linecap:round;stroke-dasharray:63;stroke-dashoffset:0;transition:stroke-dashoffset 1s linear}
+  .ah b{font-variant-numeric:tabular-nums;color:var(--orange-2)}
+  .ah button{border:0;border-radius:999px;background:#fff;color:var(--navy);font:inherit;font-size:12.5px;font-weight:800;
+    padding:7px 13px;cursor:pointer;transition:transform .2s ease}
+  .ah button:active{transform:scale(.95)}
+  @media (prefers-reduced-motion:reduce){ .ah,.ah .fgc{transition:none} }
+
+  /* ===== BOE look — Barlow Condensed headings + Inter text, navy→blue gradients, orange accents ===== */
+  body{font-family:var(--body);font-size:15px;line-height:1.5;letter-spacing:-.006em;-webkit-font-smoothing:antialiased}
+  button,input,select,textarea{font-family:var(--body)}
+  h1,h2,h3{font-family:var(--cond);text-transform:uppercase;line-height:1.05}
+  :focus-visible{outline:2px solid var(--orange);outline-offset:2px}
+  .mid{background:var(--bg) radial-gradient(var(--dots) 1.3px,transparent 1.6px) 0 0/30px 30px}
+  @keyframes wave{to{background-position:-600px 100%}}
+
+  /* header: white bar, thin line, short orange tab under the brand */
+  .hdr{position:relative;overflow:visible;z-index:5;color:var(--ink);padding:10px var(--pad) 12px;
+    background:rgba(255,255,255,.94);-webkit-backdrop-filter:saturate(1.4) blur(12px);backdrop-filter:saturate(1.4) blur(12px);
+    border-bottom:2px solid var(--line)}
+  .hdr::after{content:"";position:absolute;left:var(--pad);bottom:-2px;width:132px;height:2px;background:var(--orange)}
+  .ttl{gap:12px}
+  .logo{width:42px;height:42px;flex:none;border-radius:0;background:none;padding:0;object-fit:contain;box-shadow:none;
+    filter:drop-shadow(0 4px 8px rgba(6,30,69,.25));transition:transform .4s var(--ease)}
+  .ttl:hover .logo{transform:scale(1.07)}
+  .ttl h1{margin:0;font:700 1.2rem/1 var(--cond);letter-spacing:.02em;text-transform:uppercase;color:var(--head)}
+  .ttl h1 em{font-style:normal;color:var(--orange)}
+  .ttl p{margin:3px 0 0;font-size:.74rem;font-weight:500;color:var(--muted)}
+  .bar{margin-top:11px;gap:5px}
+  .bar i{height:4px;border-radius:3px;background:var(--line);transition:background .4s var(--ease)}
+  .bar i.on{background:var(--grad-o)}
+  .stepname{margin:7px 0 0;font:600 .82rem var(--cond);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+  .ftr{background:rgba(255,255,255,.96);border-top:2px solid var(--line);box-shadow:none}
+
+  /* form fields */
+  label{font-size:.82rem;font-weight:600;color:var(--head)}
+  input,select,textarea{border:1px solid var(--line-2);background:var(--card);border-radius:var(--r-sm);
+    transition:border-color .25s,box-shadow .25s}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,122,51,.22)}
+  .sect{font:600 .9rem var(--cond);letter-spacing:.2em;text-transform:uppercase;color:var(--orange-2);
+    border-bottom:1px solid var(--line);padding-bottom:4px;margin:2px 0 10px}
+  .it .x,.clr,.add{border-radius:var(--r-sm)}
+  .add{border-color:var(--line-2);color:var(--navy-2)}
+  .msg{border-radius:var(--r-sm)}
+  .msg.warn,.warnbox,.sc-note.warn{background:var(--warn-soft);color:var(--warn);border-left:4px solid var(--orange)}
+
+  /* buttons: navy gradient (primary), orange gradient (go), white (secondary) */
+  .btn,.cbtn,.sc-btn{position:relative;overflow:hidden;font-family:var(--body);font-weight:600;letter-spacing:0;border-radius:var(--r-sm);
+    transition:transform .3s var(--ease),box-shadow .3s var(--ease),background-position .7s var(--ease),border-color .3s,opacity .2s}
+  .btn,.cbtn.open,.sc-btn.navy{background:var(--grad);background-size:170% 100%;color:#fff;box-shadow:0 8px 20px rgba(6,30,69,.22)}
+  .btn.go,.cbtn.ok,.sc-btn{background:var(--grad-o);background-size:170% 100%;color:#fff;box-shadow:0 8px 20px rgba(242,101,34,.32)}
+  .sc-btn.navy{background:var(--grad);background-size:170% 100%;box-shadow:0 8px 20px rgba(6,30,69,.22)}
+  .btn::before,.cbtn.open::before,.cbtn.ok::before,.sc-btn::before{content:"";position:absolute;left:0;top:0;bottom:0;width:0;
+    background:var(--orange);transition:width .35s var(--ease);pointer-events:none}
+  .btn.go::before,.cbtn.ok::before,.sc-btn::before{background:var(--navy-0)}
+  .sc-btn.navy::before{background:var(--orange)}
+  .btn:active::before,.cbtn:active::before,.sc-btn:active::before{width:5px}
+  @media (hover:hover){
+    .btn:hover:not([disabled]),.cbtn:hover:not([disabled]),.sc-btn:hover:not([disabled]){transform:translateY(-2px);background-position:100% 0;box-shadow:var(--shadow-card-hi)}
+    .btn:hover:not([disabled])::before,.cbtn:hover:not([disabled])::before,.sc-btn:hover:not([disabled])::before{width:5px}
+  }
+  .btn:active,.cbtn:active,.sc-btn:active{transform:translateY(0) scale(.98)}
+  .btn.sec,.cbtn.ret{background:var(--card);color:var(--head);border:1px solid var(--line-2);box-shadow:none}
+  .btn.sec:hover,.cbtn.ret:hover{border-color:var(--orange);color:var(--head)}
+  .btn.ret{background:var(--card);color:var(--orange-2);border:1.5px solid var(--orange);box-shadow:none}
+
+  /* cards */
+  .fs,.panel,.pinbox,.sc-card,.scard,.tbl,.loginbox{border-radius:var(--r);border-color:var(--line);box-shadow:var(--shadow-card)}
+  .sum,.card,.vcard,.findbox,.cursig,.sc-items{border-radius:var(--r-sm)}
+  .sum,.card,.vcard,.findbox,.slipbox{box-shadow:var(--shadow-card)}
+  .panel h3{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid var(--line);
+    font:700 1.15rem/1.05 var(--cond);letter-spacing:.04em;text-transform:uppercase;color:var(--head)}
+  .panel h3 svg{width:30px;height:30px;padding:7px;flex:none;border-radius:9px;background:var(--grad-o);stroke:#fff;
+    box-shadow:0 4px 10px rgba(242,101,34,.32)}
+  .card h2{font-size:1.6rem;letter-spacing:.04em}
+  .vcard,.findbox{background:linear-gradient(135deg,var(--soft),#fff);border-left:4px solid var(--orange)}
+  .vcard b,.fb-t{color:var(--head)}
+  .fb-t{font:600 .82rem var(--cond);letter-spacing:.16em}
+  .vcard span{font-family:var(--cond);font-size:.8rem;font-weight:600;letter-spacing:.1em}
+  .dl .r span:first-child{font:600 .82rem var(--cond);letter-spacing:.1em;text-transform:uppercase}
+  .sum span{font-family:var(--cond);font-weight:600;letter-spacing:.08em;text-transform:uppercase;font-size:.85rem}
+
+  /* segmented tabs, chips, pills */
+  .tabs,.sc-seg{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:3px;gap:2px}
+  .tabs button,.sc-seg button{font-family:var(--body);font-weight:600;border-radius:9px;color:var(--muted);transition:background .3s,color .3s}
+  .tabs button:hover,.sc-seg button:hover{color:var(--head)}
+  .tabs button.on,.sc-seg button.on{background:var(--grad);color:#fff;box-shadow:0 4px 12px rgba(6,30,69,.25)}
+  .chip{font-family:var(--body);font-weight:600}
+  .chip:hover{border-color:var(--orange);color:var(--head)}
+  .chip.on{background:var(--grad);border-color:transparent;color:#fff;box-shadow:0 4px 12px rgba(6,30,69,.25)}
+  .pill,.chip2{font-size:.72rem;font-weight:600;padding:3px 10px}
+  .p-pending{background:var(--plantilla-soft);color:var(--plantilla)}
+  .p-returned{background:var(--contract-soft);color:var(--contract)}
+  .p-ready{background:var(--plantilla-soft);color:var(--plantilla)}
+  .p-received{background:var(--people-soft);color:var(--people)}
+  .p-cancelled{background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+  .chip2{background:var(--plantilla-soft);color:var(--plantilla)}
+  .chip2.warm{background:var(--warn-soft);color:var(--warn)}
+  .chip2.late{background:linear-gradient(100deg,#6E0F0F,var(--bad));color:#fff}
+
+  /* codes and big numbers: BOE uses Inter for digits and Barlow Condensed for the large figures */
+  .rcv-code,.scard .code,.tbl .code,.fb-row input,.sc-code input,.sc-today code,.sc-verdict .cd{font-family:var(--body);font-variant-numeric:tabular-nums}
+  .qty b,.sc-qty b,.rcv-qty b{font-family:var(--cond);font-weight:800;letter-spacing:.005em}
+  .qty b{font-size:54px}.sc-qty b{font-size:58px}.rcv-qty b{font-size:48px}
+  .qty .u,.rcv-qty span{font-family:var(--cond);font-weight:600;letter-spacing:.16em}
+
+  /* bottom sheet + toast + auto-return pill */
+  .sheet.on{background:rgba(6,30,69,.62);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+  .sheet-in{border-radius:var(--r) var(--r) 0 0;box-shadow:0 -20px 50px rgba(6,30,69,.35)}
+  .sheet-in h3{font-size:1.35rem;letter-spacing:.04em}
+  .toast{background:var(--grad);border-radius:12px;padding:12px 20px 12px 26px;font-weight:600;box-shadow:var(--shadow-hi);overflow:hidden}
+  .toast::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--orange)}
+  .toast.bad{background:linear-gradient(100deg,#6E0F0F,var(--bad))}
+  .toast.bad::before{background:#FFB199}
+  .ah{background:var(--grad);box-shadow:var(--shadow-hi)}
+  .ah .fgc{stroke:var(--orange)}
+  .ah b{color:var(--orange-2)}
+  .ah button{font-family:var(--body);font-weight:700;color:var(--head)}
+  .loading span{background:var(--orange)}
+
+  /* --- requester-only pieces in the BOE look --- */
+  .st .d{font:700 .85rem var(--cond)}
+  .st .l{font:600 .74rem/1.15 var(--cond);letter-spacing:.03em;text-transform:uppercase}
+  .st.act .d{background:var(--grad);border-color:transparent}
+  .st.done .d{background:var(--people);border-color:var(--people)}
+  .st.ret .d{background:var(--grad-o);border-color:transparent}
+  .pinbox h2{font-size:1.7rem;letter-spacing:.02em;color:var(--head)}
+  .fb-row button{border-radius:var(--r-sm);font-weight:600}
+  .tool{border-radius:var(--r-sm);font-family:var(--body);font-weight:600}
+  .tool:hover{border-color:var(--orange)}
+  .tool.arm{background:var(--grad-o);border-color:transparent}
+
+  /* admin dashboard: navy gradient KPI boxes with a coloured edge and drifting waves, like the BOE dashboard */
+  .kpi{position:relative;overflow:hidden;color:#fff;background:var(--grad);background-size:170% 100%;border:0;border-radius:var(--r);
+    box-shadow:var(--shadow);padding:16px 18px 18px;
+    transition:transform .45s var(--ease),box-shadow .45s var(--ease),background-position .8s var(--ease)}
+  .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--k,var(--orange));transition:width .4s var(--ease)}
+  .kpi::after{content:"";position:absolute;left:0;right:0;bottom:0;height:55%;opacity:.16;pointer-events:none;
+    background:var(--waves) repeat-x 0 100%/600px 100%;animation:wave 26s linear infinite}
+  .kpi>*{position:relative;z-index:1}
+  @media (hover:hover){ .kpi:hover{transform:translateY(-6px) scale(1.01);box-shadow:var(--shadow-hi);background-position:100% 0} .kpi:hover::before{width:9px} }
+  .kpi .n{font:800 3rem/1 var(--cond);color:#fff;letter-spacing:.005em}
+  .kpi .l{margin-top:6px;font:600 .82rem var(--cond);letter-spacing:.16em;text-transform:uppercase;color:#fff}
+  .hb .trk{height:14px;background:var(--soft);border-radius:7px}
+  .hb .fil{background:linear-gradient(90deg,var(--navy-1),var(--navy-3))}
+  .tbl th{font:600 .8rem var(--cond);letter-spacing:.14em;color:var(--muted);background:var(--soft);padding:10px 12px}
+  .tbl td{padding:10px 12px}
+  .tbl tbody tr{transition:background .25s,box-shadow .25s}
+  .tbl tbody tr:hover{background:var(--soft);box-shadow:inset 4px 0 0 var(--orange)}
+  .tbl .code{color:var(--head)}
+
+  /* "ready for fuel" card on the tracking page */
+  .rcv-card{background:var(--grad-o);background-size:170% 100%;border-radius:var(--r);box-shadow:0 12px 32px rgba(242,101,34,.3)}
+  .rcv-card.done{background:linear-gradient(100deg,#14592f,#1d7a45 50%,#35a96b);box-shadow:0 12px 32px rgba(29,122,69,.32)}
+  .rcv-card::before{content:"";position:absolute;left:0;right:0;bottom:0;top:auto;width:auto;height:55%;border:0;border-radius:0;opacity:.16;pointer-events:none;
+    background:var(--waves) repeat-x 0 100%/600px 100%;animation:wave 26s linear infinite}
+  .rcv-card h2{font-size:1.9rem;letter-spacing:.03em}
+  .rcv-sum{border-radius:var(--r-sm)}
+  .rcv-code{color:var(--head)}
+  @media (prefers-reduced-motion:reduce){ .kpi::after,.rcv-card::before{animation:none} }
+
+  /* ===== smooth motion: nothing flashes, nothing jumps; pages glide in once, redraws are silent ===== */
+  *{-webkit-tap-highlight-color:transparent}
+  a,button,input,select,textarea,label,.scard,.chip,.tabs button{touch-action:manipulation}
+  .pane,.itemlist,.dl,.dash,.tbl{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+  .hdr{-webkit-backdrop-filter:none;backdrop-filter:none;background:#fff}
+  .pane{animation:none}
+  .pane.pane-in{animation:paneIn .45s var(--ease) backwards}
+  @keyframes paneIn{from{opacity:0;transform:translate3d(0,14px,0)}}
+  @keyframes fadeIn{from{opacity:0}}
+  .loginbox,.hello,.allclear,.scard,.rcv-card,.sc-card,.sc-done{animation:none}
+  .rcv-ic{animation:none}
+  .pane-in .rcv-ic{animation:pop .5s var(--ease) .15s backwards}
+  .vcard{animation:fadeIn .35s var(--ease)}
+  .slipbox{opacity:0;transition:opacity .4s var(--ease)}
+  .slipbox.fit{opacity:1}
+  .slipbox:not(.fit){animation:slipShow 0s 1.5s forwards}   /* safety net: never stays hidden */
+  @keyframes slipShow{to{opacity:1}}
+  .slipwrap,.dl{animation:fadeIn .3s var(--ease)}
+  .ftr .btn,.dpfoot .btn{animation:fadeIn .35s var(--ease) backwards}
+  /* the drifting waves move with transform (cheap, smooth) instead of repainting a background every frame */
+  .hello::before,.kpi::after,.rcv-card::before,.sc-verdict::after{right:auto;width:calc(100% + 600px);background-position:0 100%;
+    animation:waveMove 26s linear infinite;will-change:transform}
+  @keyframes waveMove{to{transform:translate3d(-600px,0,0)}}
+  @media (prefers-reduced-motion:reduce){ .pane.pane-in,.slipwrap,.dl,.ftr .btn,.dpfoot .btn,.vcard{animation:none} .slipbox{opacity:1;transition:none} }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hdr">
+    <div class="ttl">
+      <img class="logo" id="logo" alt="DPWH">
+      <div>
+        <h1 id="hTitle">Requisition &amp; Issue <em>Slip</em></h1>
+        <p id="hSub">DPWH · Bureau of Equipment</p>
+      </div>
+    </div>
+    <div class="bar" id="bar" hidden></div>
+    <p class="stepname" id="stepName" hidden></p>
+  </div>
+  <div class="mid" id="mid"></div>
+  <div class="ftr" id="ftr"></div>
+</div>
+
+  <!-- Inside Apps Script, doGet() fills this block with the startup details.
+       On GitHub Pages it stays as the raw tag, which the page detects. -->
+  <script id="bootData" type="application/json"><?!= BOOT ?></script>
+  <script>
+  /* =====================================================================
+   *  GITHUB PAGES SETTINGS
+   *  Only used when this page is served from GitHub. Inside Apps Script
+   *  every line below is ignored, so the same file works in both places.
+   * ===================================================================== */
+  var SITE = {
+    api: '',                     // <<< PASTE your Apps Script web app address here (it ends with /exec)
+    key: 'req',                  // keeps this app's saved address and passcode apart from the other app's
+    rememberPasscode: true,      // kept for older copies; the passcode is now always remembered
+    title: 'DPWH Requisition & Issue Slip'
+  };
+
+  /* Is this page being served by Apps Script, or by GitHub? */
+  var ON_GITHUB = !(window.google && window.google.script && window.google.script.run);
+
+  /* The browser only offers "Install" once a service worker is registered.
+     Apps Script serves this page inside its own frame, where service workers
+     are not allowed, so we only do it on GitHub. */
+  if (ON_GITHUB && 'serviceWorker' in navigator) {
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('sw.js').catch(function(){ /* no install button, app still works */ });
+    });
+  }
+
+  /* Inside Apps Script doGet() fills the block above with the startup details.
+     On GitHub that block is still the raw tag, which is not valid JSON — so
+     this comes back null and we know to ask the Apps Script app for it. */
+  var BOOT = (function(){
+    try { return JSON.parse(document.getElementById('bootData').textContent); }
+    catch(e){ return null; }
+  })();
+
+  /* ---------- what this device remembers ----------
+     localStorage, not sessionStorage: it survives closing the tab, the browser
+     and the phone, so the passcode and the address are asked for once and then
+     never again on this device. */
+  function lsGet(k){ try{ return localStorage.getItem(k) || ''; }catch(e){ return ''; } }
+  function lsSet(k,v){ try{ if(v) localStorage.setItem(k,v); else localStorage.removeItem(k); }catch(e){} }
+
+  /* Both apps sit on the same web address, so they share one browser drawer.
+     Without a name of its own, the Approver would pick up the Requester's
+     address and quietly talk to the wrong app. */
+  function K(what){ return 'ris_' + (SITE.key||'app') + '_' + what; }
+
+  /* A harmless random name for this browser. The app counts wrong passcodes
+     per device instead of one shared tally, so a colleague fumbling theirs
+     cannot lock you out. */
+  var DEVICE = (function(){
+    var d=lsGet(K('dev'));
+    if(!d){ d='d'+Math.random().toString(36).slice(2)+Date.now().toString(36); lsSet(K('dev'), d); }
+    return d;
+  })();
+
+  var PASS = lsGet(K('pass'));
+  function savePass(v){ PASS=v||''; lsSet(K('pass'), PASS); }
+  function forgetPass(){ savePass(''); }
+
+  /* The address of the Apps Script app. Typed in once on this device; the
+     built-in SITE.api is only a fallback for people who prefer to edit the file. */
+  function apiUrl(){ return lsGet(K('api')) || SITE.api || ''; }
+  function setApiUrl(u){ lsSet(K('api'), (u||'').trim().replace(/\/+$/,'')); }
+
+  /* ---------- talking to the Apps Script app ---------- */
+  function apiCall(fn, args, ok, bad){
+    var URL_ = apiUrl();
+    if(!URL_){
+      bad && bad(new Error('This page is not connected to the app yet.'));
+      return;
+    }
+    fetch(URL_, {
+      method:'POST', mode:'cors', redirect:'follow',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },   // plain text on purpose: the browser then asks no permission first
+      body: JSON.stringify({ fn:fn, args:Array.prototype.slice.call(args||[]), pass:PASS, dev:DEVICE })
+    })
+    .then(function(r){ return r.text(); })
+    .then(function(t){
+      var j=null; try{ j=JSON.parse(t); }catch(pe){}
+      if(!j){ bad && bad(new Error('The app did not answer properly. Check that it is deployed with access set to Anyone.')); return; }
+      if(j.ok){ ok && ok(j.result); return; }
+      if(j.reason==='pass' || j.reason==='locked' || j.reason==='setup'){
+        forgetPass();
+        askConnect(j.error, function(){ apiCall(fn,args,ok,bad); });       // ask again, then carry on where we left off
+        return;
+      }
+      bad && bad(new Error(j.error || 'Something went wrong.'));
+    })
+    ['catch'](function(e){ bad && bad(new Error('Could not reach the app. Check your internet, or that the app is deployed with access set to Anyone.')); });
+  }
+
+  /* A stand-in for google.script.run, with exactly the same shape, so none of
+     the code below had to change. */
+  function makeRunner(ok, bad){
+    return new Proxy({}, { get:function(t, k){
+      if(k==='withSuccessHandler') return function(fn){ return makeRunner(fn, bad); };
+      if(k==='withFailureHandler') return function(fn){ return makeRunner(ok, fn); };
+      if(k==='withUserObject')     return function(){ return makeRunner(ok, bad); };
+      return function(){ apiCall(k, arguments, ok, bad); };
+    }});
+  }
+
+  /* ---------- the passcode screen ---------- */
+  /* The seal, carried inside the page. The lock screen appears before the server
+     has told us anything, so it cannot wait for a picture to be sent. */
+  var GATE_LOGO = 'data:image/png;base64,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';
+
+  /* ---------- the Connect screen: asked ONCE on each device ----------
+     Badyet-style. You paste the Apps Script address and the passcode one
+     time; both are kept in this browser and never asked for again. Only a
+     wrong passcode, or the app moving, brings this back. */
+  function askConnect(note, done){
+    var old=document.getElementById('gateWrap'); if(old) old.remove();
+    var needUrl  = ON_GITHUB;                       /* inside Apps Script the address is itself */
+    var needPass = !PUBLIC_NOW;                     /* a driver's tracking link never asks */
+    var w=document.createElement('div'); w.id='gateWrap';
+    w.setAttribute('style','position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;'+
+      'padding:20px;background:var(--bg,#EEF2F8);opacity:0;transition:opacity .35s ease;overflow-y:auto');
+    var FLD='width:100%;padding:13px 14px;font-size:1rem;border:1px solid var(--line-2,#D3DAE5);'+
+            'border-radius:var(--r-sm,10px);background:var(--card,#fff);color:var(--ink,#1d1d1f);outline:none';
+    w.innerHTML =
+      '<div style="width:100%;max-width:430px;background:var(--card,#fff);border:1px solid var(--line,#E5E7EC);'+
+        'border-radius:var(--r,16px);box-shadow:0 12px 32px rgba(6,30,69,.18);padding:26px 24px;text-align:center">'+
+        '<div style="width:66px;height:66px;margin:0 auto 14px"><img id="gateLogo" alt="" src="'+GATE_LOGO+'" style="width:100%;height:100%;object-fit:contain;border:0;display:block"></div>'+
+        '<h2 style="margin:0 0 2px;font:700 1.35rem/1.15 var(--cond,sans-serif);text-transform:uppercase;letter-spacing:.02em;color:var(--head,#08295F)">Bureau of Equipment</h2>'+
+        '<p style="margin:0 0 16px;font:600 .95rem var(--body,sans-serif);color:var(--orange,#F26522)">Requisition Slip App</p>'+
+        '<div id="gateErr" style="display:none;margin:0 0 12px;padding:10px 12px;border-radius:10px;background:var(--warn-soft,#FFF1D6);'+
+          'color:var(--warn,#8F5400);border-left:4px solid var(--orange,#FF7A33);font-size:.86rem;text-align:left"></div>'+
+        (needUrl ?
+          '<label style="display:block;text-align:left;margin:0 0 5px;font-size:.8rem;font-weight:600;color:var(--muted,#626a78)">Apps Script web app address</label>'+
+          '<input id="gateUrl" type="url" spellcheck="false" autocomplete="off" placeholder="https://script.google.com/macros/s/.../exec" style="'+FLD+';font-size:.86rem">'+
+          '<button id="gateTest" style="margin:8px 0 14px;padding:9px 14px;border:1px solid var(--line-2,#D3DAE5);border-radius:9px;'+
+            'background:var(--card,#fff);color:var(--navy,#08295F);font:600 .84rem var(--body,sans-serif);cursor:pointer">Test my link</button>'
+          : '')+
+        (needPass ?
+          '<label style="display:block;text-align:left;margin:0 0 5px;font-size:.8rem;font-weight:600;color:var(--muted,#626a78)">Office passcode</label>'+
+          '<input id="gateIn" type="password" autocomplete="current-password" placeholder="Passcode" style="'+FLD+';text-align:center;letter-spacing:.08em">'
+          : '')+
+        '<button id="gateGo" style="width:100%;margin-top:14px;padding:14px;border:0;border-radius:var(--r-sm,10px);cursor:pointer;'+
+          'font:600 1rem var(--body,sans-serif);color:#fff;background:var(--grad-o,#F26522);box-shadow:0 8px 20px rgba(242,101,34,.3)">Connect</button>'+
+        '<p style="margin:12px 0 0;font-size:.78rem;color:var(--muted,#626a78)">Asked once on this device. After this it opens straight away.</p>'+
+      '</div>';
+    document.body.appendChild(w);
+    void w.offsetWidth; w.style.opacity='1';
+    try { var L=document.getElementById('gateLogo'); if(L && BOOT && BOOT.assets && BOOT.assets.logo) L.src=BOOT.assets.logo; } catch(e){}
+
+    var errEl=document.getElementById('gateErr');
+    var urlEl=document.getElementById('gateUrl');
+    var inp  =document.getElementById('gateIn');
+    var btn  =document.getElementById('gateGo');
+    var test =document.getElementById('gateTest');
+    if(urlEl) urlEl.value = apiUrl();
+    function say(msg, good){
+      errEl.textContent=msg;
+      errEl.style.background = good ? 'var(--ok-bg,#E6F4EC)' : 'var(--warn-soft,#FFF1D6)';
+      errEl.style.color      = good ? 'var(--ok,#19864F)'    : 'var(--warn,#8F5400)';
+      errEl.style.borderLeftColor = good ? 'var(--ok,#19864F)' : 'var(--orange,#FF7A33)';
+      errEl.style.display='block';
+    }
+    if(note) say(note, false);
+    setTimeout(function(){ (urlEl && !urlEl.value ? urlEl : (inp||urlEl)).focus(); }, 60);
+
+    /* "Test my link" only checks the address. Any proper answer — even
+       "wrong passcode" — proves the address itself is good. */
+    if(test) test.onclick=function(){
+      var u=(urlEl.value||'').trim();
+      if(!u){ say('Paste the address first.', false); urlEl.focus(); return; }
+      test.disabled=true; test.textContent='Testing…';
+      fetch(u, { method:'POST', mode:'cors', redirect:'follow',
+                 headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+                 body: JSON.stringify({ fn:'gateCheck', args:[''], pass:'' }) })
+        .then(function(r){ return r.text(); })
+        .then(function(t){ var j=null; try{ j=JSON.parse(t); }catch(e){}
+          test.disabled=false; test.textContent='Test my link';
+          if(j) say('The link works. Now type the passcode.', true);
+          else  say('That address answered, but not like the app. Check you copied the whole /exec address.', false);
+        })
+        ['catch'](function(){ test.disabled=false; test.textContent='Test my link';
+          say('Could not reach that address. Check it ends in /exec and is deployed with access set to Anyone.', false); });
+    };
+
+    function go(){
+      var u = urlEl ? (urlEl.value||'').trim() : '';
+      var v = inp   ? (inp.value||'').trim()   : '';
+      if(urlEl && !u){ say('Paste your Apps Script address.', false); urlEl.focus(); return; }
+      if(urlEl && !/\/exec\/?$/.test(u)){ say('That address should end in /exec.', false); urlEl.focus(); return; }
+      if(inp && !v){ say('Type the passcode.', false); inp.focus(); return; }
+      btn.disabled=true; btn.textContent='Connecting…';
+      if(urlEl) setApiUrl(u);
+      function refuse(msg){
+        btn.disabled=false; btn.textContent='Connect';
+        say(msg || 'That did not work.', false);
+        if(inp){ inp.value=''; inp.focus(); }
+      }
+      if(!inp){                                   /* address only: nothing to check */
+        savePass(''); w.style.opacity='0';
+        setTimeout(function(){ w.remove(); done && done(); }, 320);
+        return;
+      }
+      PASS=v;
+      google.script.run
+        .withSuccessHandler(function(res){
+          if(!(res && res.ok)){ PASS=''; refuse(res && res.error); return; }
+          savePass(v);                            /* kept on this device from now on */
+          w.style.opacity='0';
+          setTimeout(function(){ w.remove(); done && done(); }, 320);
+        })
+        .withFailureHandler(function(err){ PASS=''; refuse((err && err.message) || 'Could not reach the app.'); })
+        .gateCheck(v, DEVICE);
+    }
+    btn.onclick=go;
+    if(inp)   inp.onkeydown  =function(e){ if(e.key==='Enter') go(); };
+    if(urlEl) urlEl.onkeydown=function(e){ if(e.key==='Enter'){ if(inp) inp.focus(); else go(); } };
+  }
+
+  /* ---------- what the page should show, taken from the address bar ---------- */
+  function urlParams(){
+    var out={}, q=location.search.replace(/^\?/,'');
+    q.split('&').forEach(function(bit){
+      if(!bit) return;
+      var i=bit.indexOf('='), k=i<0?bit:bit.slice(0,i), v=i<0?'':decodeURIComponent(bit.slice(i+1).replace(/\+/g,' '));
+      out[decodeURIComponent(k)]=v;
+    });
+    if(out.v && !out.view) out.view='verify';
+    if(out.page) out.view=out.page;
+    return out;
+  }
+
+  /* ---------- start ---------- */
+  function main(){
+
+  var ASSETS = BOOT.assets || {};
+
+  /* The form picture (and the stored signature images) are a chunk of text that is
+     only needed once a slip preview is actually on screen. Leaving them out of the
+     first load is what makes signing in open straight away; they are fetched in the
+     background the first time a preview is drawn. */
+  var ASSET_WAIT=[], ASSET_ASKING=false, ASSET_TRIES=0;
+  function withAssets(cb){
+    if(ASSETS.bg) return true;              // normal case: the pictures came with the page
+    if(cb) ASSET_WAIT.push(cb);             // safety net only, for a page that arrived without them
+    if(!ASSET_ASKING && ASSET_TRIES<4){
+      ASSET_ASKING=true; ASSET_TRIES++;
+      google.script.run
+        .withSuccessHandler(function(a){
+          ASSET_ASKING=false;
+          if(a) for(var k in a) ASSETS[k]=a[k];
+          var q=ASSET_WAIT; ASSET_WAIT=[];
+          if(!ASSETS.bg){ setTimeout(function(){ ASSET_WAIT=q.concat(ASSET_WAIT); withAssets(); }, 1500); return; }
+          q.forEach(function(f){ try{ f(); }catch(e){} });
+        })
+        .withFailureHandler(function(){            // keep the waiting redraws and try again shortly
+          ASSET_ASKING=false;
+          setTimeout(function(){ withAssets(); }, 1500);
+        })
+        .slipAssets();
+    }
+    return false;
+  }
+
+  var $ = function(id){ return document.getElementById(id); };
+  var MID = $('mid'), FTR = $('ftr');
+  /* ===== smooth motion =====
+     1. A page glides in ONCE, when it is really a different page. Redraws of the same page (a refresh,
+        a tab switch) stay silent, so nothing flashes.
+     2. Desktop mouse wheel: each notch eases to its target instead of jumping. Touch and trackpads keep their own smooth scrolling. */
+  (function(){
+    var keys=new WeakMap(), hosts=[];
+    function keyOf(p){ var c=p.firstElementChild; return c ? c.tagName+'.'+c.className+'#'+c.id : '-'; }
+    function scan(){
+      var list=document.querySelectorAll('.pane:not([data-s])');
+      for(var i=0;i<list.length;i++){
+        var p=list[i], h=p.parentNode, k=keyOf(p); p.setAttribute('data-s','1');
+        if(hosts.indexOf(h)<0) hosts.push(h);
+        if(keys.get(h)!==k){ keys.set(h,k); p.classList.add('pane-in'); }
+      }
+      hosts=hosts.filter(function(h){ return document.contains(h); });
+      hosts.forEach(function(h){ if(!h.querySelector('.pane')) keys.delete(h); });   // swapped for a spinner: the next page counts as new
+    }
+    new MutationObserver(scan).observe(document.getElementById('mid'),{childList:true,subtree:true});
+    scan();
+
+    if(window.matchMedia && matchMedia('(pointer:coarse)').matches) return;
+    var el=null, target=0, raf=0;
+    function scroller(n){
+      for(; n && n!==document.body && n!==document.documentElement; n=n.parentNode){
+        if(n.nodeType!==1) continue;
+        var tg=n.tagName; if(tg==='TEXTAREA'||tg==='SELECT'||tg==='INPUT') return null;
+        var oy=getComputedStyle(n).overflowY;
+        if((oy==='auto'||oy==='scroll') && n.scrollHeight>n.clientHeight+1) return n;
+      }
+      return null;
+    }
+    function step(){
+      if(!el){ raf=0; return; }
+      var d=target-el.scrollTop;
+      if(Math.abs(d)<0.6){ el.scrollTop=target; el=null; raf=0; return; }
+      el.scrollTop+=d*0.16; raf=requestAnimationFrame(step);
+    }
+    addEventListener('wheel',function(e){
+      if(e.ctrlKey||e.defaultPrevented||e.deltaX) return;
+      var px=0;
+      if(e.deltaMode===1) px=e.deltaY*40;
+      else if(e.deltaMode===0 && e.wheelDeltaY && Math.abs(e.wheelDeltaY)%120===0) px=e.deltaY;   // a real wheel notch, not a trackpad
+      if(!px) return;
+      var s=scroller(e.target); if(!s) return;
+      var max=s.scrollHeight-s.clientHeight;
+      if((px<0 && s.scrollTop<=0) || (px>0 && s.scrollTop>=max-1)) return;       // at the end: let the parent scroll
+      e.preventDefault();
+      if(el!==s || !raf) target=s.scrollTop;
+      el=s; target=Math.max(0,Math.min(max,target+px));
+      if(!raf) raf=requestAnimationFrame(step);
+    },{passive:false});
+  })();
+  var STATE = { id:null, poll:null, step:0, pad:null, data:{}, items:[] };
+  var STEP_LABELS = (BOOT.config && BOOT.config.approvers || []).map(function(a){ return a.column; });
+  if(ASSETS.logo) $('logo').src=ASSETS.logo;
+
+  /* Master lists from the Google Sheet (Vehicles, Personnel, Items). Used to
+     suggest and fill in details. Nothing here ever blocks a submission. */
+  var MASTER = BOOT.master || { vehicles:[], personnel:[], items:[] };
+  (function(){
+    function dl(id, opts){ var d=document.createElement('datalist'); d.id=id;
+      d.innerHTML=opts.map(function(o){ return '<option value="'+escq(o[0])+'"'+(o[1]?' label="'+escq(o[1])+'"':'')+'></option>'; }).join('');
+      document.body.appendChild(d); }
+    dl('dlPeople', MASTER.personnel.map(function(p){ return [p.name, p.position]; }));
+    dl('dlVeh',    MASTER.vehicles.map(function(v){ return [v.code, v.model]; }));
+    dl('dlItems',  MASTER.items.map(function(i){ return [i, '']; }));
+  })();
+  function findVeh(code){ code=String(code||'').trim().toUpperCase(); if(!code) return null;
+    for(var i=0;i<MASTER.vehicles.length;i++) if(MASTER.vehicles[i].code.toUpperCase()===code) return MASTER.vehicles[i]; return null; }
+  function findPerson(name){ name=String(name||'').trim().toLowerCase(); if(!name) return null;
+    for(var i=0;i<MASTER.personnel.length;i++) if(MASTER.personnel[i].name.toLowerCase()===name) return MASTER.personnel[i]; return null; }
+  function numv(x){ var n=parseFloat(String(x==null?'':x).replace(/[^0-9.\-]/g,'')); return isNaN(n)?null:n; }
+  function itemsTotal(){ var t=0; (STATE.items||[]).forEach(function(it){ t+=numv(it.quantity)||0; }); return t; }
+  /* same checks the server runs; shown live so the requester can fix them first */
+  function liveFlags(){
+    var d=STATE.data, f=[], v=findVeh(d.propertyCode), pres=numv(d.odoPresent), prev=numv(d.odoPrevious), tot=itemsTotal();
+    if(pres!=null && prev!=null && pres<prev) f.push('Present reading ('+pres+') is lower than Previous ('+prev+').');
+    if(v){
+      if(v.lastOdo!=null && pres!=null && pres<v.lastOdo) f.push('Present reading is lower than the last recorded reading for this vehicle ('+v.lastOdo+').');
+      if(v.max && tot>v.max) f.push('Total '+tot+' L is above this vehicle\'s limit of '+v.max+' L.');
+      else if(v.usual && tot>v.usual*1.5) f.push('Total '+tot+' L is much higher than usual for this vehicle ('+v.usual+' L).');
+    }
+    return f;
+  }
+
+  /* NodeList.forEach is missing on older Android browsers — always use this */
+  function each(list, fn){ for(var i=0;i<list.length;i++) fn(list[i], i); }
+  function escq(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                    .replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }   // quotes too: a value like 2" dia used to break the box it sat in
+  function titleCase(s){ return String(s==null?'':s).toLowerCase().replace(/(^|[\s\-\/.])([a-zà-öø-ÿñ])/g, function(m,p,c){ return p+c.toUpperCase(); }); }
+
+  /* ===== overlay renderer — IDENTICAL copy in Code.gs, keep in sync ===== */
+  function renderOverlayHtml(rec, A){
+    function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+    function p2(n){return (n<10?'0':'')+n;}
+    function fmtDT(v){ if(!v) return ''; var d=new Date(v); if(isNaN(d.getTime())) return String(v);
+      return p2(d.getMonth()+1)+'/'+p2(d.getDate())+'/'+String(d.getFullYear()).slice(-2)+' '+p2(d.getHours())+':'+p2(d.getMinutes()); }
+    function fmtDate(v){ if(!v) return '';
+      var m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/); if(m) return m[2]+'/'+m[3]+'/'+m[1].slice(-2);
+      var d=new Date(v); if(isNaN(d.getTime())) return String(v);
+      return p2(d.getMonth()+1)+'/'+p2(d.getDate())+'/'+String(d.getFullYear()).slice(-2); }
+    var o=[];
+    o.push('<div class="ris-page" style="position:relative;width:210mm;height:297mm;font-family:Tahoma,Verdana,Geneva,sans-serif;color:#111;font-size:8.5pt;overflow:hidden">');
+    o.push('<img src="'+A.bg+'" style="position:absolute;top:0;left:0;width:210mm;height:297mm">');
+    function c(x,y,t,st){o.push('<div style="position:absolute;left:'+x+'%;top:'+y+'%;transform:translate(-50%,-50%);white-space:nowrap;'+(st||'')+'">'+esc(t)+'</div>');}
+    function l(x,y,t,st){o.push('<div style="position:absolute;left:'+x+'%;top:'+y+'%;transform:translateY(-50%);white-space:nowrap;'+(st||'')+'">'+esc(t)+'</div>');}
+    function r(x,y,t,st){o.push('<div style="position:absolute;left:'+x+'%;top:'+y+'%;transform:translate(-100%,-50%);white-space:nowrap;'+(st||'')+'">'+esc(t)+'</div>');}
+    function box(x,y,w,t,st){o.push('<div style="position:absolute;left:'+x+'%;top:'+y+'%;width:'+w+'%;transform:translate(-50%,-50%);text-align:center;line-height:1.1;'+(st||'')+'">'+esc(t)+'</div>');}
+    function im(x,y,src,w){o.push('<img src="'+src+'" style="position:absolute;left:'+x+'%;top:'+y+'%;transform:translate(-50%,-50%);width:'+w+'%;height:auto;mix-blend-mode:multiply">');}
+    var y0=33.1,p=2.225;
+    (rec.items||[]).slice(0,6).forEach(function(it,i){
+      var y=y0+i*p;
+      c(20.06,y,'Liters'); c(33.21,y,it.description||''); c(48.51,y,it.quantity||'');
+      c(58.28,y,'✓'); c(73.06,y,it.quantity||'');
+    });
+    var bu='font-weight:bold;text-decoration:underline';
+    l(31.5,68.4,rec.propertyCode||'',bu); l(31.5,70.0,rec.model||'',bu); l(31.5,71.6,rec.tripTicket||'',bu);
+    l(36.0,74.9,fmtDate(rec.dateFrom)); l(34.5,76.5,fmtDate(rec.dateTo));
+    box(77.5,67.2,26,'Odometer / Hour Meter Reading','font-weight:bold;font-size:7.5pt');
+    [['Present:',rec.odoPresent],['Previous:',rec.odoPrevious],
+     ['Distance Travelled:',rec.odoDistance],['Balance in Tank:',rec.odoBalance]]
+    .forEach(function(row,i){ var y=69.4+i*1.9;
+      r(73.0,y,row[0]); l(74.5,y,row[1]||'','font-weight:bold;text-decoration:underline'); });
+    var X={req:33.2,app:52.5,iss:69.0,rec:84.1}, SY=82.5;
+    if(rec.approvals[0]) im(X.iss,SY,(rec.sigData&&rec.sigData[0])||A.callada,12.5);
+    if(rec.approvals[1]) im(X.req,SY,(rec.sigData&&rec.sigData[1])||A.ranoa,17);
+    if(rec.approvals[2]) im(X.app,SY,(rec.sigData&&rec.sigData[2])||A.ilao,18);
+    if(rec.status==='completed' && rec.senderSignature)
+      o.push('<img src="'+rec.senderSignature+'" style="position:absolute;left:'+X.rec+'%;top:'+SY+'%;transform:translate(-50%,-50%);max-width:13%;max-height:7mm;width:auto;height:auto">');
+    box(X.rec,84.6,15,(rec.senderName||'').toUpperCase(),'font-weight:bold;font-size:8.5pt');
+    box(X.rec,87.8,15,rec.senderPosition||'','font-weight:bold;font-size:8.5pt');
+    var DY=90.0, ds='font-size:7.5pt';
+    if(rec.approvals[1]) c(X.req,DY,fmtDT(rec.approvals[1].signedAt),ds);
+    if(rec.approvals[2]) c(X.app,DY,fmtDT(rec.approvals[2].signedAt),ds);
+    if(rec.approvals[0]) c(X.iss,DY,fmtDT(rec.approvals[0].signedAt),ds);
+    if(rec.status==='completed') c(X.rec,DY,fmtDT(rec.completedAt),ds);
+    if(rec.status==='completed' && rec.qr){
+      o.push('<img src="'+rec.qr+'" style="position:absolute;left:83.71%;top:11.15%;transform:translate(-50%,-50%);width:13.5%;height:auto">');
+      c(83.71,16.9,rec.txn||'','font-size:6pt;letter-spacing:.2px');
+    }
+    o.push('</div>');
+    return o.join('');
+  }
+
+  /* ===== scale the A4 page so the whole thing fits, no scrolling ===== */
+  function fitSlip(){
+    var box=document.querySelector('.slipbox'), wrap=document.querySelector('.slipwrap');
+    if(!box||!wrap) return;
+    var page=box.querySelector('.ris-page'); if(!page) return;
+    page.style.transform='none';
+    var pw=page.offsetWidth, ph=page.offsetHeight;
+    if(!pw||!ph) return;
+    var cw=wrap.clientWidth, ch=wrap.clientHeight;
+    /* The scanned form has a wide white border of its own, so showing the whole
+       A4 sheet wastes about a sixth of the screen. Trim that border off the view
+       and the form itself comes out noticeably bigger. The printed PDF is drawn
+       separately and still gets the full sheet, margins and all. */
+    var M={ l:0.070, r:0.068, t:0.042, b:0.078 };
+    var iw=pw*(1-M.l-M.r), ih=ph*(1-M.t-M.b);
+    var k=Math.min(cw/iw, ch/ih);
+    page.style.transform='translate('+(-pw*M.l*k)+'px,'+(-ph*M.t*k)+'px) scale('+k+')';
+    box.style.width=Math.floor(iw*k)+'px';
+    box.style.height=Math.floor(ih*k)+'px';
+    box.classList.add('fit');
+  }
+  window.addEventListener('resize', fitSlip);
+  window.addEventListener('orientationchange', function(){ setTimeout(fitSlip,250); });
+
+  function slipPane(rec, redraw){
+    if(!withAssets(redraw)) return '<div class="slipwrap"><div class="slipbox"><div class="ris-page" style="position:relative;width:210mm;height:297mm;background:#fff;display:flex;align-items:center;justify-content:center"><div style="text-align:center;color:#626a78;font:600 5mm/1.4 sans-serif">Loading the form…<br><span style="font-size:3.6mm;font-weight:400">If this stays empty, reload the page.</span></div></div></div></div>';
+    return '<div class="slipwrap"><div class="slipbox">'+renderOverlayHtml(rec,ASSETS)+'</div></div>';
+  }
+
+  /* ===== shared bits ===== */
+  function setHeader(title, sub){ var h=$('hTitle'), w=String(title||'').split(' '), last=w.pop(); h.textContent='';
+    if(w.length) h.appendChild(document.createTextNode(w.join(' ')+' '));
+    var em=document.createElement('em'); em.textContent=last; h.appendChild(em); $('hSub').textContent=sub; }
+  function setProgress(n, total, name){
+    if(!total){ $('bar').hidden=true; $('stepName').hidden=true; return; }
+    var h=''; for(var i=0;i<total;i++) h+='<i class="'+(i<=n?'on':'')+'"></i>';
+    $('bar').innerHTML=h; $('bar').hidden=false;
+    $('stepName').textContent='Step '+(n+1)+' of '+total+' · '+name;
+    $('stepName').hidden=false;
+  }
+  /* ---------- a small picture for each row label ---------- */
+  var ICO_PATHS={
+    hash:'M5 8h14M5 14h14M9 4l-1.5 16M16 4l-1.5 16',
+    doc:'M7 3h7l4 4v14H7zM14 3v4h4',
+    user:'M12 12a4 4 0 100-8 4 4 0 000 8zM4.5 20a7.5 7.5 0 0115 0',
+    badge:'M4 7h16v12H4zM9 4h6v3H9zM8 12h8M8 16h5',
+    tag:'M3 12l9-9 9 9-9 9zM12 8v.01',
+    truck:'M3 7h11v9H3zM14 10h4l3 3v3h-7M7 19a2 2 0 100-4 2 2 0 000 4zM18 19a2 2 0 100-4 2 2 0 000 4z',
+    ticket:'M4 7h16v3a2 2 0 000 4v3H4v-3a2 2 0 000-4zM10 7v10',
+    cal:'M4 6h16v15H4zM4 10h16M9 3v4M15 3v4',
+    drop:'M12 3s6 6.5 6 10a6 6 0 01-12 0c0-3.5 6-10 6-10z',
+    gauge:'M12 20a8 8 0 110-16 8 8 0 010 16zM12 12l4-3',
+    road:'M7 21L9 3M17 21l-2-18M12 6v3M12 13v3',
+    pen:'M4 20l4-1 10-10-3-3L5 16zM14 6l3 3',
+    back:'M9 14L4 9l5-5M4 9h10a6 6 0 010 12H8',
+    note:'M6 3h12v18H6zM9 8h6M9 12h6M9 16h4',
+    flag:'M6 21V4M6 4h11l-2 4 2 4H6',
+    clock:'M12 21a9 9 0 110-18 9 9 0 010 18zM12 7v5l3 2'
+  };
+  var ICO_FOR={
+    'Transaction Code':'hash','RIS No.':'doc','Requester':'user','Position':'badge',
+    'Property Code':'tag','For use of':'truck','Trip Ticket':'ticket','From':'cal','To':'cal',
+    'Items':'drop','Present':'gauge','Previous':'gauge','Distance':'road','Balance in Tank':'drop',
+    'Issued by':'pen','Requested by':'pen','Approved by':'pen','Returned by':'back',
+    'Remarks':'note','Checks':'flag','Fuel release':'drop','Released On':'clock','Released By':'user'
+  };
+  function icoSvg(label){
+    var p=ICO_PATHS[ICO_FOR[label]||'note']||ICO_PATHS.note;
+    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="'+p+'"/></svg>';
+  }
+
+  /* ---------- how much fuel, and of what ---------- */
+  function fuelOf(rec){
+    var it=rec.items||[], total=0, kinds=[];
+    it.forEach(function(i){
+      var q=parseFloat(String(i.quantity==null?'':i.quantity).replace(/[^0-9.]/g,''));
+      if(!isNaN(q)) total+=q;
+      var d=String(i.description||'').trim();
+      if(d && kinds.indexOf(d)<0) kinds.push(d);
+    });
+    return { qty: total ? (Math.round(total*100)/100)+' L' : '—',
+             label: kinds.length===1 ? kinds[0] : (kinds.length ? kinds.length+' kinds' : '') };
+  }
+
+  /* ---------- a notice that drifts in, waits, then fades ---------- */
+  var TOAST={el:null,a:null,b:null};
+  function toast(kind, html, ms){
+    if(TOAST.el){ clearTimeout(TOAST.a); clearTimeout(TOAST.b);
+                  if(TOAST.el.parentNode) TOAST.el.remove(); TOAST.el=null; }
+    var d=document.createElement('div');
+    d.className='toast '+(kind||'ok'); d.innerHTML=html;
+    document.body.appendChild(d); TOAST.el=d;
+    requestAnimationFrame(function(){ d.classList.add('in'); });
+    TOAST.a=setTimeout(function(){
+      d.classList.remove('in');
+      TOAST.b=setTimeout(function(){ if(d.parentNode) d.remove(); if(TOAST.el===d) TOAST.el=null; }, 560);
+    }, ms||5000);
+  }
+
+  /* Green once something is actually done, red while fuel is still unreleased
+     or the slip was cancelled, plain black for anything merely waiting. */
+  function toneOf(v){
+    var t=String(v==null?'':v).trim().toUpperCase();
+    if(t==='SIGNED' || t==='COMPLETED' || t==='RELEASED') return ' v-done';
+    if(t==='NOT RELEASED' || t==='VOIDED' || t==='CANCELLED') return ' v-wait';
+    return '';
+  }
+
+  function detailRows(pairs){
+    var h='<div class="dl">';
+    pairs.forEach(function(p){ if(p[1]==null||p[1]==='') return;
+      h+='<div class="r"><span>'+icoSvg(p[0])+escq(p[0])+':</span><span class="v'+toneOf(p[1])+'">'+escq(p[1])+'</span></div>'; });
+    return h+'</div>';
+  }
+  /* date and time, for "when was this requested" */
+  function fmtWhenUI(v){
+    if(!v) return '';
+    var d=new Date(v); if(isNaN(d.getTime())) return String(v);
+    var p=function(n){ return ('0'+n).slice(-2); };
+    return p(d.getMonth()+1)+'/'+p(d.getDate())+'/'+String(d.getFullYear()).slice(-2)+' '+p(d.getHours())+':'+p(d.getMinutes());
+  }
+  function fmtDateUI(v){
+    if(!v) return '';
+    var m=String(v).match(/^(\d{4})-(\d{2})-(\d{2})$/); if(m) return m[2]+'/'+m[3]+'/'+m[1].slice(-2);
+    var d=new Date(v); if(isNaN(d.getTime())) return String(v);
+    return ('0'+(d.getMonth()+1)).slice(-2)+'/'+('0'+d.getDate()).slice(-2)+'/'+String(d.getFullYear()).slice(-2);
+  }
+
+  /* =========================================================
+   *  SUBMIT — one short step per screen, nothing scrolls
+   * ======================================================= */
+  /* =========================================================
+   *  ONE PAGE. Every section is on screen at once; Submit checks
+   *  them all and jumps to the first thing that needs fixing.
+   *  Phone: one column. Desktop: requester + vehicle on the left,
+   *  trip + items on the right, signature across the bottom.
+   * ======================================================= */
+  function startSubmit(skipDraw){
+    STATE.nav=(STATE.nav||0)+1;   // this screen's number; a late reply from the one before is ignored
+    cancelAutoHome(); stopPolling(); STATE.id=''; STATE.last=null;
+    STATE.step=0; STATE.data={}; STATE.items=[{description:'',quantity:''}]; STATE.editId=null; STATE.editNote='';
+    if(skipDraw!==true) drawForm();     // only an explicit true skips it (a click handler passes an event)
+  }
+  function findBoxHtml(){
+    if(STATE.editId) return '';
+    return '<div class="findbox"><div class="fb-t">Already have a slip?</div>'+
+      '<div class="fb-row"><input id="findCode" type="text" inputmode="text" autocapitalize="characters" autocomplete="off" spellcheck="false" maxlength="24" placeholder="e.g. K7M2P">'+
+      '<button type="button" id="findGo">Open</button></div>'+
+      '<div class="hint off" id="findHint">Opens its tracking page: live status and the QR for the fuel station.</div></div>';
+  }
+  function sec(cls, html){ return '<section class="fs '+cls+'">'+html+'</section>'; }
+  function drawForm(){
+    setHeader(STATE.editId?'Fix & resubmit':'Requisition & Issue Slip','DPWH · Bureau of Equipment');
+    setProgress(0,0,'');
+    MID.className='mid';
+    MID.innerHTML='<div class="pane" id="pane"><div class="form1" id="form1">'+
+      (STATE.editNote?'<div class="msg warn col-full">'+escq(STATE.editNote)+'</div>':'')+
+      '<div class="col-full">'+findBoxHtml()+'</div>'+
+      '<div class="fcol">'+sec('s-req',stRequester())+sec('s-veh',stVehicle())+'</div>'+
+      '<div class="fcol">'+sec('s-trip',stMeter())+sec('s-items',stItems())+'</div>'+
+      '<div class="col-full">'+sec('s-sign',stSign())+'</div>'+
+      '</div></div>';
+    FTR.innerHTML='<button class="btn go" id="nxt">'+(STATE.editId?'Resubmit':'Submit request')+'</button>';
+    $('nxt').onclick=submitAll;
+    bindTC(); bindOdo(); bindPerson(); bindFind(); bindVehicle(); bindMeterChecks(); bindItemChecks(); bindItems();
+    setTimeout(initPad,30);
+  }
+  /* Run every section's check in order; stop at the first one that fails
+     (it has already shown its message next to the field). */
+  function submitAll(){
+    var old=document.querySelectorAll('#pane .msg.err'); each(old,function(e){ e.parentNode.removeChild(e); });
+    each(document.querySelectorAll('#pane .bad'),function(e){ e.classList.remove('bad'); });
+    if(saveRequester(false)===false) return;
+    if(saveVehicle(false)===false)   return;
+    if(saveMeter(false)===false)     return;
+    if(saveItems(false)===false)     return;
+    doSubmit();
+  }
+  /* Show the message right above the field it is about, scroll there, focus it.
+     With no field id it goes to the top of the page. */
+  function err(m, id){
+    var p=$('pane'); if(!p) return;
+    var d=document.createElement('div'); d.className='msg err'; d.textContent=m;
+    var el=id?$(id):null, wrap=null;
+    if(el){ wrap=el; while(wrap && wrap!==p && !(wrap.classList&&wrap.classList.contains('f')) && !(wrap.classList&&wrap.classList.contains('fs'))) wrap=wrap.parentNode; if(wrap===p) wrap=null; }
+    if(wrap && wrap.parentNode){
+      wrap.parentNode.insertBefore(d, wrap);
+      el.classList.add('bad');
+      try{ d.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){ d.scrollIntoView(); }
+      setTimeout(function(){ try{ el.focus({preventScroll:true}); }catch(e){} },350);
+    } else {
+      var host=$('form1')||p; host.insertBefore(d, host.firstChild); p.scrollTop=0;
+    }
+  }
+  function v(id){ var e=$(id); return e?(e.value||'').trim():''; }
+
+  function stRequester(){
+    var d=STATE.data;
+    return '<div class="sect">Who is requesting</div>'+
+      '<div class="f"><label>Name <span class="req">*</span></label><input id="senderName" class="tc" list="dlPeople" autocomplete="off" placeholder="Start typing your name" value="'+escq(d.senderName||'')+'">'+
+        '<div class="hint off" id="pHint">'+(MASTER.personnel.length?'Pick your name to fill in your position and email.':'')+'</div></div>'+
+      '<div class="f"><label>Position <span class="req">*</span></label><input id="senderPosition" class="tc" value="'+escq(d.senderPosition||'')+'"></div>'+
+      '<div class="f"><label>Email <span class="req">*</span></label><input id="senderEmail" type="email" inputmode="email" placeholder="you@example.com" value="'+escq(d.senderEmail||'')+'"></div>';
+  }
+  function saveRequester(quiet){
+    var d=STATE.data;
+    d.senderName=v('senderName'); d.senderPosition=v('senderPosition'); d.senderEmail=v('senderEmail');
+    if(quiet) return;
+    if(!d.senderName) return err('Enter your name.','senderName')||false;
+    if(!d.senderPosition) return err('Enter your position.','senderPosition')||false;
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.senderEmail)) return err('Enter a valid email address.','senderEmail')||false;
+    return true;
+  }
+
+  function stVehicle(){
+    var d=STATE.data;
+    return '<div class="sect">Vehicle &amp; property</div>'+
+      '<div class="f"><label>DPWH Property Code Number</label><input id="propertyCode" list="dlVeh" autocomplete="off" placeholder="Type or pick, e.g. DPWH-DR-0001" value="'+escq(d.propertyCode||'')+'">'+
+        '<div class="hint off" id="vHint"></div></div>'+
+      '<div id="vCard"></div>'+
+      '<div class="f"><label>For use of / Model</label><input id="model" class="tc" value="'+escq(d.model||'')+'"></div>'+
+      '<div class="f"><label>Trip Ticket Number</label><input id="tripTicket" value="'+escq(d.tripTicket||'')+'"></div>';
+  }
+  function saveVehicle(){
+    var d=STATE.data;
+    d.propertyCode=v('propertyCode'); d.model=v('model'); d.tripTicket=v('tripTicket');
+    return true;
+  }
+
+  function stMeter(){
+    var d=STATE.data;
+    return '<div class="sect">Requested dates</div>'+
+      '<div class="g2">'+
+        '<div class="f"><label>From</label><input id="dateFrom" type="date" value="'+escq(d.dateFrom||'')+'"></div>'+
+        '<div class="f"><label>To</label><input id="dateTo" type="date" value="'+escq(d.dateTo||'')+'"></div>'+
+      '</div>'+
+      '<div class="sect" style="margin-top:4px">Odometer / hour meter</div>'+
+      '<div class="g2">'+
+        '<div class="f"><label>Present</label><input id="odoPresent" inputmode="decimal" value="'+escq(d.odoPresent||'')+'"></div>'+
+        '<div class="f"><label>Previous</label><input id="odoPrevious" inputmode="decimal" value="'+escq(d.odoPrevious||((findVeh(d.propertyCode)||{}).lastOdo!=null?String(findVeh(d.propertyCode).lastOdo):''))+'"></div>'+
+        '<div class="f"><label>Distance</label><input id="odoDistance" placeholder="auto" value="'+escq(d.odoDistance||'')+'"></div>'+
+        '<div class="f"><label>Balance in Tank</label><input id="odoBalance" placeholder="5 Ltrs" value="'+escq(d.odoBalance||'')+'"></div>'+
+      '</div>'+
+      ((findVeh(d.propertyCode)||{}).lastOdo!=null ? '<div class="hint">Previous filled from the last slip of this vehicle ('+escq(findVeh(d.propertyCode).lastDate)+').</div>' : '')+
+      '<div class="warnbox" id="mWarn"></div>';
+  }
+  function saveMeter(){
+    var d=STATE.data;
+    d.dateFrom=v('dateFrom'); d.dateTo=v('dateTo');
+    d.odoPresent=v('odoPresent'); d.odoPrevious=v('odoPrevious');
+    d.odoDistance=v('odoDistance'); d.odoBalance=v('odoBalance');
+    return true;
+  }
+
+  function stItems(){
+    var h='<div class="sect">What is being requested</div>'+
+      '<div class="ith"><div>Description *</div><div>Qty (L)</div><div></div></div>'+
+      '<div class="itemlist" id="itemlist"></div>'+
+      '<button type="button" class="add" id="addItem">+ Add item</button>'+
+      '<div class="hint off" id="iHint" style="margin-top:10px"></div><div class="warnbox" id="iWarn"></div>';
+    return h;
+  }
+  function bindItems(){
+    renderItems();
+    $('addItem').onclick=function(){ readItems(); STATE.items.push({description:'',quantity:''}); renderItems(); };
+  }
+  function renderItems(){
+    var el=$('itemlist'); if(!el) return;
+    el.innerHTML = STATE.items.map(function(it,i){
+      return '<div class="it">'+
+        '<input placeholder="e.g. Diesel" list="dlItems" autocomplete="off" data-k="description" data-i="'+i+'" value="'+escq(it.description)+'">'+
+        '<input placeholder="40" inputmode="decimal" data-k="quantity" data-i="'+i+'" value="'+escq(it.quantity)+'">'+
+        '<button type="button" class="x" data-del="'+i+'">×</button></div>';
+    }).join('');
+    each(el.querySelectorAll('[data-del]'), function(b){
+      b.onclick=function(){ readItems(); var i=+b.getAttribute('data-del');
+        STATE.items.splice(i,1); if(!STATE.items.length) STATE.items=[{description:'',quantity:''}]; renderItems(); };
+    });
+    bindTC();
+  }
+  function readItems(){
+    var el=$('itemlist'); if(!el) return;
+    each(el.querySelectorAll('input'), function(inp){
+      var i=+inp.getAttribute('data-i'), k=inp.getAttribute('data-k');
+      if(STATE.items[i]) STATE.items[i][k]=(inp.value||'').trim();
+    });
+  }
+  function saveItems(quiet){
+    readItems();
+    if(quiet) return;
+    var described=STATE.items.filter(function(it){ return (it.description||'').trim(); });
+    if(!described.length) return err('Add at least one item.','itemlist')||false;
+    // every item that has a description must also have a quantity greater than 0
+    var bad=described.filter(function(it){ var n=parseFloat(it.quantity); return isNaN(n)||n<=0; });
+    if(bad.length) return err('Enter a quantity (in Liters) for every item.','itemlist')||false;
+    return true;
+  }
+
+  function stSign(){
+    var pinField = (BOOT.config && BOOT.config.submitPinRequired)
+      ? '<div class="f" style="margin-top:12px"><label>Submit PIN <span class="req">*</span></label>'+
+        '<input id="submitPin" type="tel" inputmode="numeric" autocomplete="off" placeholder="Enter PIN" '+
+        'value="'+escq(STATE.data.pin||'')+'" style="text-align:center;letter-spacing:3px"></div>'
+      : '';
+    return '<div class="sect">Sign to submit</div>'+
+      '<div class="warnbox" id="sWarn"></div>'+
+      '<div class="padwrap"><div class="pad"><canvas id="sig"></canvas><div class="ph" id="sigPh">Sign here</div></div>'+
+      '<div class="padbar"><span>Draw with your finger or mouse.</span>'+
+      '<button type="button" class="clr" id="clr">Clear</button></div></div>'+ pinField;
+  }
+  function initPad(){
+    var cv=$('sig'); if(!cv) return;
+    STATE.pad=makePad(cv);
+    $('clr').onclick=function(){ STATE.pad.clear(); };
+  }
+  function makePad(canvas){
+    var ctx=canvas.getContext('2d'), dpr=window.devicePixelRatio||1;
+    var r=canvas.getBoundingClientRect();
+    canvas.width=Math.max(1,Math.round(r.width*dpr)); canvas.height=Math.max(1,Math.round(r.height*dpr));
+    ctx.scale(dpr,dpr); ctx.lineWidth=2.4; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#0a1a5a';
+    var drawing=false,last=null,drawn=false,bb=null;
+    function pos(e){ var b=canvas.getBoundingClientRect(); return {x:e.clientX-b.left,y:e.clientY-b.top}; }
+    function mark(p){ if(!bb) bb={a:p.x,b:p.y,c:p.x,d:p.y};
+      else { bb.a=Math.min(bb.a,p.x); bb.b=Math.min(bb.b,p.y); bb.c=Math.max(bb.c,p.x); bb.d=Math.max(bb.d,p.y); } }
+    canvas.addEventListener('pointerdown',function(e){ e.preventDefault(); drawing=true; last=pos(e); mark(last);
+      var ph=$('sigPh'); if(ph) ph.style.display='none'; });
+    canvas.addEventListener('pointermove',function(e){ if(!drawing) return; e.preventDefault();
+      var p=pos(e); ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke(); last=p; mark(p); drawn=true; });
+    window.addEventListener('pointerup',function(){ drawing=false; });
+    return {
+      clear:function(){ ctx.clearRect(0,0,canvas.width,canvas.height); drawn=false; bb=null;
+        var ph=$('sigPh'); if(ph) ph.style.display=''; },
+      isEmpty:function(){ return !drawn; },
+      dataURL:function(){
+        if(!drawn) return '';
+        var pd=10, minx=Math.max(0,bb.a-pd), miny=Math.max(0,bb.b-pd), w=(bb.c+pd)-minx, h=(bb.d+pd)-miny;
+        var target=Math.min(180,w), k=target/w;
+        var out=document.createElement('canvas');
+        out.width=Math.max(1,Math.round(w*k)); out.height=Math.max(1,Math.round(h*k));
+        var oc=out.getContext('2d');
+        oc.drawImage(canvas, minx*dpr, miny*dpr, w*dpr, h*dpr, 0,0,out.width,out.height);
+        /* Make the ink one single colour and round off the soft edges. The picture
+           looks the same but saves as a far smaller file, which is what used to make
+           signing and signing in slow. */
+        try {
+          var im=oc.getImageData(0,0,out.width,out.height), d=im.data, a;
+          for(var i=0;i<d.length;i+=4){
+            a=d[i+3];
+            if(a<40){ d[i]=d[i+1]=d[i+2]=d[i+3]=0; continue; }
+            d[i]=10; d[i+1]=26; d[i+2]=90;
+            d[i+3]=Math.min(255, Math.round(a/51)*51);
+          }
+          oc.putImageData(im,0,0);
+        } catch(ce){ /* never block signing over this */ }
+        return out.toDataURL('image/png');
+      }
+    };
+  }
+
+  function bindTC(){
+    each(document.querySelectorAll('input.tc'), function(inp){
+      inp.onblur=function(){ if(inp.value) inp.value=titleCase(inp.value.trim()); };
+    });
+  }
+  /* Name picked from the list -> position + email filled in (only empty ones or ones we filled). */
+  function bindPerson(){
+    var N=$('senderName'), Pn=$('senderPosition'), E=$('senderEmail'), H=$('pHint');
+    function run(){
+      var p=findPerson(N.value);
+      if(p){
+        if(!Pn.value || Pn.getAttribute('data-auto')){ Pn.value=p.position||''; Pn.setAttribute('data-auto','1'); }
+        if(!E.value || E.getAttribute('data-auto')){ E.value=p.email||''; E.setAttribute('data-auto','1'); }
+        H.className='hint'; H.textContent='✓ Found in the Personnel list. Position and email filled in.';
+      } else if(MASTER.personnel.length){
+        H.className='hint off'; H.textContent=N.value?'Not in the Personnel list. Type your position and email.':'Pick your name to fill in your position and email.';
+      }
+    }
+    N.addEventListener('input',run); N.addEventListener('change',run);
+    Pn.addEventListener('input',function(){ Pn.removeAttribute('data-auto'); });
+    E.addEventListener('input',function(){ E.removeAttribute('data-auto'); });
+  }
+  /* Property code picked -> model filled in, details card shown. */
+  function bindFind(){
+    var box=$('findCode'), go=$('findGo'), hint=$('findHint'); if(!box||!go) return;
+    function run(){
+      var code=(box.value||'').replace(/\s+/g,'').toUpperCase();
+      if(code.length<5){ hint.textContent='Type the code printed under the QR on the slip.'; hint.className='hint'; hint.style.color='var(--bad)'; box.focus(); return; }
+      go.disabled=true; go.textContent='…'; hint.textContent='Looking it up…'; hint.className='hint off'; hint.style.color='';
+      google.script.run
+        .withSuccessHandler(function(res){
+          go.disabled=false; go.textContent='Open';
+          if(!res||!res.ok){ hint.textContent=(res&&res.message)||'Not found.'; hint.className='hint'; hint.style.color='var(--bad)'; return; }
+          STATE.id=res.id; viewStatusLoad();
+        })
+        .withFailureHandler(function(e){ go.disabled=false; go.textContent='Open'; hint.textContent=(e&&e.message)||'Could not look that up.'; hint.className='hint'; hint.style.color='var(--bad)'; })
+        .findSlipByCode(code);
+    }
+    go.onclick=run;
+    box.onkeydown=function(e){ if(e.key==='Enter'){ e.preventDefault(); run(); } };
+    box.oninput=function(){ var u=box.value.toUpperCase(); if(box.value!==u){ var c=box.selectionStart; box.value=u; try{box.setSelectionRange(c,c);}catch(x){} } };
+  }
+  function bindVehicle(){
+    var C=$('propertyCode'), M=$('model'), H=$('vHint'), K=$('vCard');
+    function run(){
+      var v=findVeh(C.value);
+      if(v){
+        if(!M.value || M.getAttribute('data-auto')){ M.value=v.model||''; M.setAttribute('data-auto','1'); }
+        H.className='hint'; H.textContent='✓ Found in the Vehicles list.';
+        var vh='<div class="vcard"><div><span>Type</span><b>'+escq(v.type||'—')+'</b></div><div><span>Fuel</span><b>'+escq(v.fuel||'—')+'</b></div>'+
+          '<div><span>Usual fill</span><b>'+(v.usual!=null?v.usual+' L':'—')+(v.max?' (max '+v.max+' L)':'')+'</b></div>'+
+          '<div><span>Last odometer</span><b>'+(v.lastOdo!=null?v.lastOdo:'No record yet')+'</b></div>'+
+          (v.office?'<div class="wide"><span>Office / unit</span><b>'+escq(v.office)+'</b></div>':'')+'</div>';
+        if(K.getAttribute('data-h')!==vh){ K.innerHTML=vh; K.setAttribute('data-h',vh); }   // only redraw when it changed
+        // a new slip for a different vehicle should not keep the old vehicle's readings
+        if(STATE.lastVeh && STATE.lastVeh!==v.code){ STATE.data.odoPrevious='';
+          var PV=$('odoPrevious'); if(PV) PV.value='';           // clear the box as well, not just the stored value
+        }
+        STATE.lastVeh=v.code;
+        if(STATE.items.length===1 && !STATE.items[0].description && v.fuel) STATE.items[0].description=v.fuel;
+      } else {
+        if(K.getAttribute('data-h')){ K.innerHTML=''; K.removeAttribute('data-h'); }
+        H.className='hint off'; H.textContent=(C.value.trim().length>=4 && MASTER.vehicles.length)?'Not in the Vehicles list. You can still continue.':'';
+      }
+    }
+    C.addEventListener('input',run); C.addEventListener('change',run);
+    M.addEventListener('input',function(){ M.removeAttribute('data-auto'); });
+    run();
+  }
+  function bindMeterChecks(){
+    function run(){ saveMeter(); $('mWarn').innerHTML=liveFlags().filter(function(f){ return /reading/.test(f); }).map(escq).join('<br>'); }
+    ['odoPresent','odoPrevious'].forEach(function(id){ $(id).addEventListener('input',run); });
+    run();
+  }
+  function bindItemChecks(){
+    var v=findVeh(STATE.data.propertyCode), el=$('itemlist');
+    $('iHint').textContent = v && v.usual ? 'Usual fill for '+v.code+': '+v.usual+' L'+(v.max?' · limit '+v.max+' L':'') : '';
+    function run(){ readItems(); $('iWarn').innerHTML=liveFlags().filter(function(f){ return /Total/.test(f); }).map(escq).join('<br>'); }
+    el.addEventListener('input',run); run();
+  }
+  function bindOdo(){
+    var P=$('odoPresent'), V=$('odoPrevious'), D=$('odoDistance');
+    if(!P||!V||!D) return;
+    var manual=!!(D.value||'').trim();
+    D.addEventListener('input',function(){ manual=true; });
+    function num(el){ var n=parseFloat((el.value||'').replace(/[^0-9.\-]/g,'')); return isNaN(n)?null:n; }
+    function calc(){ if(manual) return; var a=num(P), b=num(V);
+      D.value=(a!==null&&b!==null&&a>=b)?String(Math.round((a-b)*100)/100):''; }
+    P.addEventListener('blur',calc); V.addEventListener('blur',calc);
+  }
+
+  function doSubmit(){
+    var sig = STATE.pad ? STATE.pad.dataURL() : '';
+    if(!sig) return err('Please sign in the box.','sig');
+    var pin = $('submitPin') ? ($('submitPin').value||'').trim() : '';
+    if(BOOT.config && BOOT.config.submitPinRequired && !pin){ STATE.data.pin=''; return err('Enter the submit PIN.','submitPin'); }
+    STATE.data.pin = pin;
+    var d=STATE.data;
+    var payload={
+      senderName:d.senderName, senderPosition:d.senderPosition, senderEmail:d.senderEmail,
+      propertyCode:d.propertyCode||'', model:d.model||'', tripTicket:d.tripTicket||'',
+      dateFrom:d.dateFrom||'', dateTo:d.dateTo||'',
+      odoPresent:d.odoPresent||'', odoPrevious:d.odoPrevious||'',
+      odoDistance:d.odoDistance||'', odoBalance:d.odoBalance||'',
+      items: STATE.items.filter(function(it){ return (it.description||'').trim(); }),
+      senderSignature: sig, pin: pin
+    };
+    $('nxt').disabled=true; $('nxt').textContent='Submitting…';
+    google.script.run
+      .withSuccessHandler(function(res){ STATE.id=res.id; afterSubmit(res); })
+      .withFailureHandler(function(e){
+        $('nxt').disabled=false; $('nxt').textContent=STATE.editId?'Resubmit':'Submit request';
+        err((e&&e.message)||'Something went wrong.');
+      })
+      [STATE.editId?'resubmitRequest':'submitRequest'](STATE.editId||payload, payload);   // edit mode resends the same slip
+  }
+  /* Returned slip: open the same wizard filled with the old answers. */
+  function viewEdit(data){
+    STATE.nav=(STATE.nav||0)+1;   // this screen's number; a late reply from the one before is ignored
+    var rec=data.record;
+    if(rec.status!=='returned'){ viewStatus(rec); return; }
+    startSubmit(true);                  // fill the fields first, then draw once
+    STATE.editId=rec.id; STATE.id=rec.id;
+    var r=rec.returned||{};
+    STATE.editNote='Returned by '+(r.by||'an approver')+' ('+(r.column||'')+'): '+(r.remarks||'')+' — fix it, sign again, then tap Resubmit.';
+    STATE.data={ senderName:rec.senderName, senderPosition:rec.senderPosition, senderEmail:rec.sender,
+      propertyCode:rec.propertyCode, model:rec.model, tripTicket:rec.tripTicket, dateFrom:rec.dateFrom, dateTo:rec.dateTo,
+      odoPresent:rec.odoPresent, odoPrevious:rec.odoPrevious, odoDistance:rec.odoDistance, odoBalance:rec.odoBalance };
+    STATE.items=(rec.items||[]).map(function(it){ return {description:it.description, quantity:it.quantity}; });
+    if(!STATE.items.length) STATE.items=[{description:'',quantity:''}];
+    drawForm();
+    setHeader('Fix & resubmit', rec.txn);
+  }
+  function afterSubmit(res){
+    setProgress(0,0,'');
+    MID.className='mid center';
+    MID.innerHTML='<div style="padding:24px;text-align:center">'+
+      '<div class="card ok" style="margin:0"><div class="b">✓</div><h2>'+(res.resubmitted?'RESUBMITTED':'SUBMITTED')+'</h2>'+
+      '<p>The approvers will see it in their app. You will get an email when it is fully signed.</p></div>'+
+      (res.warnings&&res.warnings.length?'<div class="msg err" style="margin-top:10px">'+res.warnings.map(escq).join('<br>')+'</div>':'')+
+      '</div>';
+    FTR.innerHTML='<button class="btn" id="track">Track this slip</button>';
+    $('track').onclick=function(){ viewStatusLoad(); };
+  }
+
+  /* =========================================================
+   *  STATUS  (Document / Details tabs — neither scrolls)
+   * ======================================================= */
+  var tab='doc';
+  function viewStatusLoad(){
+    STATE.nav=(STATE.nav||0)+1;   // this screen's number; a late reply from the one before is ignored
+    STATE.last=null;          // a slip opened already released does not bounce you home
+    setHeader('Tracking','Live approval status');
+    setProgress(0,0,'');
+    MID.className='mid center';
+    MID.innerHTML='<p class="note">Loading…</p>';
+    FTR.innerHTML='';
+    refreshStatus(); startPolling();
+  }
+  function viewStatus(rec){
+    STATE.nav=(STATE.nav||0)+1;   // this screen's number; a late reply from the one before is ignored
+    STATE.id=rec.id; STATE.last=rec;
+    setHeader('Tracking','Live approval status');
+    setProgress(0,0,'');
+    paintStatus(rec);
+    if(!isFinal(rec)) startPolling(pollMsFor(rec));
+  }
+  /* Approvals move slowly (5 s is plenty). At the pump, the switch from
+     "show the QR" to "Fuel released" should feel quick, so 4 s there. */
+  function pollMsFor(rec){ return rec.status==='completed' ? 4000 : 5000; }
+  function stepperHtml(rec){
+    var done=rec.status==='completed';
+    var n=[{l:'Sent',s:'done'}];
+    STEP_LABELS.forEach(function(lbl,i){ var k=i+1;
+      n.push({l:lbl.replace(' by',''), s: (rec.status==='returned'&&rec.currentStep===k)?'ret':(rec.currentStep>k?'done':(rec.currentStep===k?'act':''))}); });
+    n.push({l:'Done', s:done?'done':''});
+    return '<div class="steps">'+n.map(function(x,i){
+      return '<div class="st '+x.s+'"><div class="d">'+(x.s==='done'?'✓':(x.s==='ret'?'↩':(i===0?'✓':i)))+'</div><div class="l">'+escq(x.l)+'</div></div>';
+    }).join('')+'</div>';
+  }
+  /* Where a fully-approved slip is in the hand-over:
+       awaiting  -> show the QR; the attendant scans it
+       released  -> the attendant tapped Release: slip COMPLETED, all done
+                    (older slips may still say RELEASED; same thing now)
+       voided    -> cancelled at the station */
+  function phaseOf(rec){
+    if(rec.status!=='completed') return '';
+    var fs=String(rec.release&&rec.release.finalStatus||'NOT RELEASED').replace(/\s+/g,'').toUpperCase();
+    if(fs==='RELEASED' || fs==='COMPLETED') return 'released';
+    if(fs==='VOIDED')    return 'voided';
+    return 'awaiting';
+  }
+  function slipSummaryHtml(rec){
+    var total=0; (rec.items||[]).forEach(function(it){ total+=parseFloat(it.quantity)||0; });
+    return '<div class="rcv-sum">'+
+      '<div class="rcv-qty"><b>'+total+'</b><span>Litres</span></div>'+
+      '<div class="rcv-meta"><b>'+escq((rec.items||[]).map(function(i){return i.description+' '+i.quantity+' L';}).join(', '))+'</b>'+
+      '<span>'+escq([rec.propertyCode,rec.model].filter(Boolean).join(' · ')||'—')+'</span>'+
+      '<span class="rcv-code">'+escq(rec.txn)+'</span></div></div>';
+  }
+  function paintStatus(rec){
+    var sig=tab+'|'+JSON.stringify(rec);
+    if(sig===STATE.paintSig && MID.querySelector('#tDoc')) return;   // nothing changed: leave the screen alone
+    STATE.paintSig=sig;
+    MID.className='mid';
+    var ret=rec.status==='returned'&&rec.returned;
+    var phase=phaseOf(rec), rel=rec.release||{};
+    /* The stage notices are shown as a drifting pop-up further down. */
+    var F=fuelOf(rec);
+    MID.innerHTML='<div class="pane" style="overflow:hidden">'+
+      '<div class="stat3" data-tab="'+tab+'">'+
+
+        /* 1 — how far along this slip is */
+        '<div class="s3flow">'+stepperHtml(rec)+'</div>'+
+
+        /* 2 — the code, the fuel, then everything else about the slip */
+        '<div class="s3mid">'+
+          '<div class="s3head">'+
+            '<div class="s3code"><b>'+escq(rec.txn||'—')+'</b><span>Transaction code</span></div>'+
+            '<div class="s3fuel"><b>'+escq(F.qty)+'</b><span>'+escq(F.label)+'</span></div>'+
+          '</div>'+
+          '<div class="tabs"><button id="tDoc" class="'+(tab==='doc'?'on':'')+'">Document</button>'+
+          '<button id="tDet" class="'+(tab==='det'?'on':'')+'">Details</button></div>'+
+          '<div class="s3det">'+detailRows(detailsOf(rec))+'</div>'+
+        '</div>'+
+
+        /* 3 — the buttons, under the details */
+        '<div class="s3btn">'+
+          '<button class="btn sec" id="newOne">New</button>'+
+          (ret?'<button class="btn go" id="fix">Fix &amp; resubmit</button>'
+              :'<button class="btn" id="ref">Refresh</button>')+
+        '</div>'+
+
+        /* 4 — the slip, taking all the room that is left */
+        '<div class="s3doc">'+
+          slipPane(rec, function(){ if(STATE.id!==rec.id) return; STATE.paintSig=''; paintStatus(rec); })+
+        '</div>'+
+      '</div>'+
+      '</div>';
+
+    FTR.innerHTML='';           /* no sticky bar: the buttons sit with the details */
+
+    /* The notice drifts in over the screen and fades by itself. Shown once for
+       each stage, not on every quiet refresh. */
+    var tkey=rec.id+'|'+phase+'|'+(ret?'ret':'');
+    if(STATE.noticeKey!==tkey){
+      STATE.noticeKey=tkey;
+      if(ret) toast('warn','<b>Returned by '+escq(rec.returned.by)+'.</b> '+escq(rec.returned.remarks), 7000);
+      else if(phase==='awaiting') toast('ok','<b>Fully approved.</b> Show the QR to the fuel attendant. This page updates by itself once the fuel is released.', 6000);
+      else if(phase==='released') toast('ok','<b>Fuel released'+(rel.releasedOn?' on '+escq(rel.releasedOn):'')+'.</b> This slip is COMPLETED — nothing else to do.', 6000);
+      else if(phase==='voided')   toast('err','<b>Cancelled at the fuel station.</b> This slip cannot be used.', 7000);
+    }
+
+    /* On a phone this swaps which half is on screen. On a wide screen both are
+       already there, so the buttons are hidden and this never runs. */
+    function showTab(which){
+      tab=which;
+      /* The "has anything changed?" signature starts with the tab name. Switching
+         tabs here does not repaint, so the signature has to be brought in step —
+         otherwise the next refresh sees a mismatch, rebuilds the whole screen and
+         throws the details list back to the top every few seconds. */
+      var bar=STATE.paintSig.indexOf('|');
+      if(bar>=0) STATE.paintSig = which + STATE.paintSig.slice(bar);
+      var box=document.querySelector('.stat3'); if(box) box.setAttribute('data-tab',which);
+      var d=$('tDoc'), t=$('tDet');
+      if(d) d.className = which==='doc' ? 'on' : '';
+      if(t) t.className = which==='det' ? 'on' : '';
+      if(which==='doc'){ fitSlip(); requestAnimationFrame(fitSlip); }
+    }
+    $('tDoc').onclick=function(){ showTab('doc'); };
+    $('tDet').onclick=function(){ showTab('det'); };
+    if($('ref')) $('ref').onclick=refreshStatus;
+    if($('fix')) $('fix').onclick=function(){ stopPolling(); viewEdit({record:rec}); };
+    if($('newOne')) $('newOne').onclick=function(){ stopPolling(); startSubmit(); };
+    fitSlip(); requestAnimationFrame(fitSlip);
+  }
+  function detailsOf(rec){
+    var ap=rec.approvals||[];
+    var who=['Issued by','Requested by','Approved by'];
+    /* the code is the headline above, so it is not repeated down here */
+    var rows=[['RIS No.',rec.risNo],
+      ['Date Requested',fmtWhenUI(rec.createdAt)],
+      ['Requester',rec.senderName],['Position',rec.senderPosition],
+      ['Property Code',rec.propertyCode],['For use of',rec.model],['Trip Ticket',rec.tripTicket],
+      ['From',fmtDateUI(rec.dateFrom)],['To',fmtDateUI(rec.dateTo)],
+      ['Items',(rec.items||[]).map(function(i){return i.description+' x '+i.quantity;}).join(', ')],
+      ['Present',rec.odoPresent],['Previous',rec.odoPrevious],
+      ['Distance',rec.odoDistance],['Balance in Tank',rec.odoBalance]];
+    who.forEach(function(w,i){ rows.push([w, ap[i]?'Signed':'Pending']); });
+    if(rec.status==='returned'&&rec.returned){ rows.push(['Returned by',rec.returned.by+' ('+rec.returned.column+')']); rows.push(['Remarks',rec.returned.remarks]); }
+    if(rec.flags&&rec.flags.length) rows.push(['Checks',rec.flags.join(' ')]);
+    if(rec.release){
+      rows.push(['Fuel release', rec.release.finalStatus]);
+      if(rec.release.releasedOn) rows.push(['Released On', rec.release.releasedOn]);
+      if(rec.release.releasedBy) rows.push(['Released By', rec.release.releasedBy]);
+    }
+    return rows;
+  }
+  function refreshStatus(){
+    if(!STATE.id) return;
+    var asked=STATE.id, nav=STATE.nav;
+    google.script.run
+      .withSuccessHandler(function(d){
+        /* STATE.id alone was not enough: "Fix & resubmit" keeps the same id, so a
+           reply already on its way used to repaint the tracking page over the
+           edit form and throw away what had been typed. */
+        if(STATE.nav!==nav || STATE.id!==asked || !d || !d.record) return;
+        var hadLast=!!STATE.last, before=phaseOf(STATE.last||{}), after=phaseOf(d.record);
+        paintStatus(d.record);
+        /* released while this page was open: buzz, then head home after 5 s unless they tap Stay */
+        if(hadLast && before!=='released' && after==='released'){
+          if(navigator.vibrate) navigator.vibrate([80,50,80]);
+          autoHome(5,'Going home',function(){ stopPolling(); STATE.id=''; STATE.last=null; startSubmit(); });
+        }
+        STATE.last=d.record;
+        if(isFinal(d.record)) stopPolling();
+        else if(STATE.pollMs!==pollMsFor(d.record)) startPolling(pollMsFor(d.record));
+      })
+      .withFailureHandler(function(){})
+      .getStatus(STATE.id);
+  }
+  /* Final = fuel released (or cancelled). Until then the tracking page keeps updating. */
+  function isFinal(r){
+    if(r.status==='returned') return true;
+    if(r.status!=='completed') return false;
+    var fs=r.release && r.release.finalStatus;
+    return fs==='COMPLETED' || fs==='RELEASED' || fs==='VOIDED';   // no release row yet: keep watching
+  }
+  /* ---------- auto-return: a 5-second countdown with a "Stay here" button ---------- */
+  var AH={ timer:null, el:null };
+  function cancelAutoHome(){
+    if(AH.timer){ clearInterval(AH.timer); AH.timer=null; }
+    var el=AH.el; AH.el=null;
+    if(el){ el.classList.remove('on'); setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); },400); }
+  }
+  function autoHome(secs, label, go){
+    cancelAutoHome();
+    var left=secs, el=document.createElement('div'); el.className='ah'; el.setAttribute('role','status');
+    el.innerHTML='<svg viewBox="0 0 24 24"><circle class="bgc" cx="12" cy="12" r="10"/><circle class="fgc" cx="12" cy="12" r="10"/></svg>'+
+      '<span>'+label+' in <b>'+left+'</b>…</span><button type="button">Stay here</button>';
+    document.body.appendChild(el); AH.el=el;
+    void el.offsetWidth; requestAnimationFrame(function(){ el.classList.add('on'); });
+    el.querySelector('button').onclick=cancelAutoHome;
+    var ring=el.querySelector('.fgc'), num=el.querySelector('b');
+    AH.timer=setInterval(function(){
+      left--; if(num) num.textContent=Math.max(left,0);
+      if(ring) ring.style.strokeDashoffset=String(63*(secs-left)/secs);
+      if(left<=0){ cancelAutoHome(); go(); }
+    },1000);
+  }
+  function startPolling(ms){ stopPolling(); STATE.pollMs=ms||5000; STATE.poll=setInterval(refreshStatus,STATE.pollMs); }
+  function stopPolling(){ if(STATE.poll){ clearInterval(STATE.poll); STATE.poll=null; } }
+
+  /* =========================================================
+   *  VERIFY  /  INVALID
+   * ======================================================= */
+  function viewVerify(data){
+    STATE.nav=(STATE.nav||0)+1;   // this screen's number; a late reply from the one before is ignored
+    var v=data.result||{}, ok=!!v.approved, d=v.details||{};
+    setHeader('Verification','Requisition & Issue Slip');
+    setProgress(0,0,'');
+    MID.className='mid';
+    MID.innerHTML='<div class="pane">'+
+      '<div class="card '+(ok?'ok':'bad')+'"><div class="b">'+(ok?'✓':'!')+'</div>'+
+      '<h2>'+(ok?'APPROVED':'NOT VERIFIED')+'</h2><p>'+escq(v.message||'')+'</p></div>'+
+      (v.found?detailRows([['Transaction Code',v.txn],['RIS No.',d.risNo],['Requester',d.requester],
+        ['Position',d.position],['Property Code',d.propertyCode],['For use of',d.model],
+        ['Trip Ticket',d.tripTicket],['Items',d.items],['Total (Liters)',d.totalQty],
+        ['Date Completed',d.completed]]):'')+
+      '</div>';
+    FTR.innerHTML='';
+  }
+  function viewInvalid(){
+    STATE.nav=(STATE.nav||0)+1;   // this screen's number; a late reply from the one before is ignored
+    setHeader('Not found','Requisition & Issue Slip');
+    setProgress(0,0,'');
+    MID.className='mid center';
+    MID.innerHTML='<p class="note">This link is no longer valid,<br>or the request was cleared.</p>';
+    FTR.innerHTML='<button class="btn" id="newOne">Start a new request</button>';
+    $('newOne').onclick=startSubmit;
+  }
+
+  /* =========================================================
+   *  ADMIN DASHBOARD   (open the app with ?page=admin)
+   * ======================================================= */
+  var DASH={ rows:[], filter:'all', q:'', pin:'' };
+  var STAGES={ pending:'Waiting approval', returned:'Returned', ready:'Ready for release', received:'Released', cancelled:'Cancelled' };
+  function stageOf(r){
+    var s=(r.status||'').toUpperCase(), f=(r.final||'').toUpperCase().replace(/\s+/g,'');
+    if(f==='VOIDED') return 'cancelled';
+    if(f==='COMPLETED' || f==='RELEASED') return 'received';   // released = completed now
+    if(s.indexOf('COMPLETED')===0) return 'ready';
+    if(s.indexOf('RETURNED')===0) return 'returned';
+    return 'pending';
+  }
+  function monthKey(t){ var m=String(t||'').match(/^(\d\d)\/\d\d\/(\d\d)/); return m?('20'+m[2]+'-'+m[1]):''; }
+  var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function ic(p){ return '<svg viewBox="0 0 24 24" aria-hidden="true">'+p+'</svg>'; }
+
+  function viewAdmin(){
+    STATE.nav=(STATE.nav||0)+1;   // this screen's number; a late reply from the one before is ignored
+    setHeader('Fuel Dashboard','Admin · live from the Google Sheet');
+    setProgress(0,0,'');
+    var saved=''; try{ saved=sessionStorage.getItem('ris_admin_pin')||''; }catch(e){}
+    if(saved){ DASH.pin=saved; loadDash(); return; }
+    MID.className='mid';
+    MID.innerHTML='<div class="pane"><div class="pinbox"><img src="'+(ASSETS.logo||'')+'" alt="DPWH">'+
+      '<h2>Admin dashboard</h2><p class="note">Enter the admin PIN.</p>'+
+      '<input id="apin" type="tel" inputmode="numeric" autocomplete="off" placeholder="••••">'+
+      '<div class="msg err" id="perr" hidden></div></div></div>';
+    FTR.innerHTML='<button class="btn" id="open">Open dashboard</button>';
+    $('open').onclick=function(){ DASH.pin=($('apin').value||'').trim(); loadDash(); };
+    $('apin').onkeydown=function(e){ if(e.key==='Enter') $('open').click(); };
+  }
+  function loadDash(){
+    if($('open')){ $('open').disabled=true; $('open').textContent='Loading…'; }
+    google.script.run
+      .withSuccessHandler(function(d){ try{ sessionStorage.setItem('ris_admin_pin',DASH.pin); }catch(e){}
+        DASH.rows=d.rows||[]; DASH.sheetUrl=d.sheetUrl; DASH.at=d.generatedAt; drawDash(); })
+      .withFailureHandler(function(e){
+        try{ sessionStorage.removeItem('ris_admin_pin'); }catch(x){}
+        if(!$('apin')) viewAdmin();
+        setTimeout(function(){ var p=$('perr'); if(p){ p.hidden=false; p.textContent=(e&&e.message)||'Could not load.'; }
+          if($('open')){ $('open').disabled=false; $('open').textContent='Open dashboard'; } },0);
+      })
+      .getDashboard(DASH.pin);
+  }
+  function drawDash(){
+    var rows=DASH.rows, now=new Date();
+    var thisMonth=now.getFullYear()+'-'+('0'+(now.getMonth()+1)).slice(-2);
+    var count={pending:0,returned:0,ready:0,released:0,received:0,cancelled:0}, issuedMonth=0, byVeh={}, byMon={};
+    rows.forEach(function(r){
+      r.stage=stageOf(r); count[r.stage]++;
+      if(r.stage==='released'||r.stage==='received'){
+        var mk=monthKey(r.releasedOn)||monthKey(r.submitted);
+        if(mk===thisMonth) issuedMonth+=r.liters;
+        if(mk) byMon[mk]=(byMon[mk]||0)+r.liters;
+        var vk=[r.property,r.model].filter(Boolean).join(' · ')||'Not stated';
+        byVeh[vk]=(byVeh[vk]||0)+r.liters;
+      }
+    });
+    function kpi(k,n,l,col){ return '<div class="kpi" data-f="'+k+'" style="--k:'+col+'"><div class="n">'+n+'</div><div class="l">'+l+'</div></div>'; }
+    var veh=Object.keys(byVeh).map(function(k){return [k,byVeh[k]];}).sort(function(a,b){return b[1]-a[1];}).slice(0,8);
+    var vmax=veh.length?veh[0][1]:1;
+    var months=[]; for(var i=5;i>=0;i--){ var d=new Date(now.getFullYear(),now.getMonth()-i,1);
+      months.push([d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2), MON[d.getMonth()]]); }
+    var mmax=Math.max.apply(null,months.map(function(m){return byMon[m[0]]||0;}).concat([1]));
+    var fmt=function(n){ return Math.round(n*10)/10; };
+
+    MID.className='mid';
+    MID.innerHTML='<div class="pane"><div class="dash">'+
+      '<div class="kpis">'+
+        kpi('pending',count.pending,'Waiting approval','var(--navy)')+
+        kpi('returned',count.returned,'Returned','var(--orange)')+
+        kpi('ready',count.ready,'Ready for release','#0b4fb3')+
+        kpi('received',count.received,'Released (completed)','var(--ok)')+
+        kpi('cancelled',count.cancelled,'Cancelled','#5b6077')+
+        '<div class="kpi" style="--k:var(--orange-2);cursor:default"><div class="n">'+fmt(issuedMonth)+' L</div><div class="l">Issued this month</div></div>'+
+      '</div>'+
+      '<div class="twocol">'+
+        '<div class="panel"><h3>'+ic('<path d="M3 17h2l2-5h9l2 5h3"/><circle cx="7.5" cy="17.5" r="1.8"/><circle cx="17.5" cy="17.5" r="1.8"/>')+'Liters issued per vehicle</h3>'+
+          (veh.length?veh.map(function(v){ return '<div class="hb"><span class="lab" title="'+escq(v[0])+'">'+escq(v[0])+'</span>'+
+            '<span class="trk"><span class="fil" style="width:'+(v[1]/vmax*100)+'%;display:block"></span></span><span class="v">'+fmt(v[1])+' L</span></div>'; }).join('')
+            :'<div class="empty">No fuel released yet.</div>')+'</div>'+
+        '<div class="panel"><h3>'+ic('<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>')+'Liters issued per month</h3>'+
+          '<div class="cols">'+months.map(function(m){ var v=byMon[m[0]]||0;
+            return '<div class="c"><span class="cv">'+(v?fmt(v):'')+'</span><span class="bar2" style="height:'+Math.max(v/mmax*110,v?4:2)+'px"></span><span class="cl">'+m[1]+'</span></div>'; }).join('')+
+          '</div></div>'+
+      '</div>'+
+      '<div class="panel"><h3>'+ic('<path d="M4 6h16M4 12h16M4 18h10"/>')+'All slips <span class="note" style="font-weight:500;margin-left:auto">Updated '+escq(DASH.at||'')+'</span></h3>'+
+        '<div class="tools"><input id="dq" type="search" placeholder="Search code, name, vehicle…" value="'+escq(DASH.q)+'">'+
+          ['all'].concat(Object.keys(STAGES)).map(function(k){ return '<button class="chip'+(DASH.filter===k?' on':'')+'" data-f="'+k+'">'+(k==='all'?'All':STAGES[k])+'</button>'; }).join('')+
+        '</div><div id="dtab" style="margin-top:10px"></div></div>'+
+      '<div class="panel"><h3>'+ic('<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/>')+'Sheet tools</h3>'+
+        '<div class="toolrow"><button class="tool" data-t="demo-load">Load demo data</button>'+
+        '<button class="tool" data-t="demo-clear">Clear demo data</button>'+
+        '<button class="tool" data-t="format">Re-apply Sheet design</button></div>'+
+        '<div class="toolmsg" id="tmsg">Demo slips have an RIS No. starting with DEMO-. Clearing removes only those. Tap a button twice to run it.</div></div>'+
+    '</div></div>';
+    FTR.innerHTML='<a class="btn sec" style="text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center" href="'+escq(DASH.sheetUrl||'#')+'" target="_blank" rel="noopener">Open Google Sheet</a>'+
+      '<button class="btn" id="dref">Refresh</button>';
+    $('dref').onclick=function(){ $('dref').disabled=true; $('dref').textContent='Refreshing…'; loadDash(); };
+    $('dq').oninput=function(){ DASH.q=this.value; drawTable(); };
+    each(MID.querySelectorAll('[data-f]'), function(b){ b.onclick=function(){ DASH.filter=b.getAttribute('data-f');
+      each(MID.querySelectorAll('.chip'),function(c){ c.classList.toggle('on', c.getAttribute('data-f')===DASH.filter); }); drawTable(); }; });
+    each(MID.querySelectorAll('.tool'), function(b){
+      b.onclick=function(){
+        if(!b.classList.contains('arm')){ b.classList.add('arm'); b.setAttribute('data-l',b.textContent); b.textContent='Tap again to confirm';
+          setTimeout(function(){ if(b.classList.contains('arm')){ b.classList.remove('arm'); b.textContent=b.getAttribute('data-l'); } },4000); return; }
+        b.classList.remove('arm'); b.textContent='Working…'; b.disabled=true; $('tmsg').textContent='This can take up to a minute…';
+        google.script.run
+          .withSuccessHandler(function(m){ $('tmsg').textContent=m; b.disabled=false; b.textContent=b.getAttribute('data-l'); loadDash(); })
+          .withFailureHandler(function(e){ $('tmsg').textContent=(e&&e.message)||'Failed.'; b.disabled=false; b.textContent=b.getAttribute('data-l'); })
+          .adminTool(DASH.pin, b.getAttribute('data-t'));
+      };
+    });
+    drawTable();
+  }
+  function drawTable(){
+    var q=DASH.q.toLowerCase();
+    var list=DASH.rows.filter(function(r){
+      if(DASH.filter!=='all' && r.stage!==DASH.filter) return false;
+      return !q || [r.code,r.requester,r.property,r.model,r.items,r.releasedBy].join(' ').toLowerCase().indexOf(q)>=0;
+    });
+    $('dtab').innerHTML = list.length ? '<div class="tbl"><table><thead><tr><th>Slip code</th><th>Submitted</th><th>Requester</th><th>Vehicle</th><th>Items</th><th style="text-align:right">Liters</th><th>Stage</th><th>Released by</th></tr></thead><tbody>'+
+      list.slice(0,300).map(function(r){ return '<tr><td class="code">'+escq(r.code)+'</td><td>'+escq(r.submitted)+'</td><td>'+escq(r.requester)+'</td>'+
+        '<td>'+escq([r.property,r.model].filter(Boolean).join(' · '))+'</td><td>'+escq(r.items)+'</td><td class="num">'+r.liters+'</td>'+
+        '<td><span class="pill p-'+r.stage+'">'+STAGES[r.stage]+'</span></td><td>'+escq(r.releasedBy)+'</td></tr>'; }).join('')+
+      '</tbody></table></div>' : '<div class="empty">No slips match.</div>';
+  }
+
+  /* ===== boot ===== */
+  (function(){
+    if(BOOT.view==='verify') viewVerify(BOOT.data);
+    else if(BOOT.view==='status') viewStatus(BOOT.data.record);
+    else if(BOOT.view==='invalid') viewInvalid();
+    else if(BOOT.view==='edit') viewEdit(BOOT.data);
+    else if(BOOT.view==='admin') viewAdmin();
+    else startSubmit();
+  })();
+
+  }
+
+  /* =====================================================================
+   *  GETTING STARTED — the same few lines whether this page came from
+   *  Apps Script or from GitHub.
+   *
+   *    gated      = this screen needs the office passcode
+   *    not gated  = a link that was emailed to a driver; it just opens
+   * ===================================================================== */
+  if(ON_GITHUB){
+    window.google = { script: { run: makeRunner(null,null) } };
+    document.title = SITE.title;
+  }
+
+  var P = ON_GITHUB ? urlParams()
+                    : ((BOOT && BOOT.params) || { view:(BOOT && BOOT.view) || 'submit' });
+  var PUBLIC_VIEWS = ['status','verify','invalid'];
+  /* A link emailed to a driver: it opens with no passcode, ever. */
+  var PUBLIC_NOW = PUBLIC_VIEWS.indexOf(P.view || 'submit') >= 0;
+
+  function startFailed(msg){
+    document.body.innerHTML='<div style="max-width:430px;margin:12vh auto;padding:24px;text-align:center;'+
+      'font:400 15px/1.6 system-ui,sans-serif;color:#1d1d1f">'+
+      '<h2 style="margin:0 0 10px;font-size:1.3rem">This page could not reach the system</h2>'+
+      '<p style="color:#626a78">'+String(msg).replace(/[<>&]/g,'')+'</p>'+
+      '<button id="rt" style="margin-top:14px;padding:12px 20px;border:0;border-radius:10px;'+
+      'background:#F26522;color:#fff;font-weight:600;cursor:pointer">Try again</button>'+
+      '<button id="rc" style="margin-top:14px;margin-left:8px;padding:12px 20px;border:1px solid #D3DAE5;border-radius:10px;'+
+      'background:#fff;color:#08295F;font-weight:600;cursor:pointer">Connect again</button></div>';
+    var r=document.getElementById('rt'); if(r) r.onclick=function(){ location.reload(); };
+    var c=document.getElementById('rc'); if(c) c.onclick=function(){ setApiUrl(''); forgetPass(); location.reload(); };
+  }
+
+  /* the passcode and the startup details in one trip */
+  /* The two /exec addresses look alike, so check we were handed the right one. */
+  function wrongApp(b){ return (b && b.data && b.data.positions && !b.master) ? 'That address is the Approver app. Paste the Requester /exec address instead.' : ''; }
+
+  function unlock(){
+    google.script.run
+      .withSuccessHandler(function(res){
+        if(res && res.ok && res.boot){
+          var w = wrongApp(res.boot);
+          if(w){ setApiUrl(''); askConnect(w, start); return; }
+          BOOT = res.boot; main(); return;
+        }
+        forgetPass();
+        askConnect((res && res.error) || '', unlock);
+      })
+      .withFailureHandler(function(e){ startFailed((e && e.message) || 'Could not reach the app.'); })
+      .gateBoot(PASS, P, DEVICE);
+  }
+
+  /* a public link, served from GitHub: fetch the details, no passcode */
+  function openStart(){
+    apiCall('boot', [P], function(b){
+      if(!b){ startFailed('The app answered, but sent nothing back.'); return; }
+      var w = wrongApp(b);
+      if(w){ setApiUrl(''); askConnect(w, start); return; }
+      BOOT = b; main();
+    }, function(e){ startFailed((e && e.message) || 'Could not reach the app.'); });
+  }
+
+  /* ---------- getting started ----------
+     Nothing is asked twice. Whatever this device already knows is used, and
+     the Connect screen only appears when something is genuinely missing. */
+  function start(){
+    if(ON_GITHUB && !apiUrl()){ askConnect('', start); return; }  // never been connected here
+    if(PUBLIC_NOW){ ON_GITHUB ? openStart() : main(); return; }   // a driver's link: straight in
+    if(ON_GITHUB){ unlock(); return; }                            // asks only if the passcode is missing or wrong
+    if(BOOT && BOOT.gate){ PASS ? unlock() : askConnect('', unlock); return; }
+    main();                                                        // Apps Script, no passcode set up
+  }
+  start();
+
+</script>
+</body>
+</html>
