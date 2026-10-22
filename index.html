@@ -168,7 +168,9 @@
   @media (min-width:980px){
     .mid .pane{padding:10px 14px}
     .stat3{display:grid;
-      grid-template-columns:minmax(210px,265px) minmax(320px,395px) 1fr;
+      /* the slip column is only as wide as the slip really is (set by fitSlip),
+         so the space that used to sit empty beside it goes to the details */
+      grid-template-columns:minmax(200px,255px) minmax(330px,1fr) var(--docw,1fr);
       grid-template-rows:1fr auto;
       gap:12px 16px;align-items:stretch}
     .stat3 > .s3flow{grid-column:1;grid-row:1/span 2;min-height:0}
@@ -994,7 +996,9 @@
     if(rec.approvals[0]) im(X.iss,SY,(rec.sigData&&rec.sigData[0])||A.callada,12.5);
     if(rec.approvals[1]) im(X.req,SY,(rec.sigData&&rec.sigData[1])||A.ranoa,17);
     if(rec.approvals[2]) im(X.app,SY,(rec.sigData&&rec.sigData[2])||A.ilao,18);
-    if(rec.status==='completed' && rec.senderSignature)
+    /* The requester signs when they submit, so it belongs here from that
+       moment — not only once the slip is finished. */
+    if(rec.senderSignature)
       o.push('<img src="'+rec.senderSignature+'" style="position:absolute;left:'+X.rec+'%;top:'+SY+'%;transform:translate(-50%,-50%);max-width:13%;max-height:7mm;width:auto;height:auto">');
     box(X.rec,84.6,15,(rec.senderName||'').toUpperCase(),'font-weight:bold;font-size:8.5pt');
     box(X.rec,87.8,15,rec.senderPosition||'','font-weight:bold;font-size:8.5pt');
@@ -1024,13 +1028,22 @@
        A4 sheet wastes about a sixth of the screen. Trim that border off the view
        and the form itself comes out noticeably bigger. The printed PDF is drawn
        separately and still gets the full sheet, margins and all. */
-    var M={ l:0.070, r:0.068, t:0.042, b:0.078 };
+    /* Trim most of the sheet's own white border, but leave an even margin all
+       round so it still reads as a printed page and not a cropped photo. */
+    var M={ l:0.049, r:0.049, t:0.031, b:0.069 };
     var iw=pw*(1-M.l-M.r), ih=ph*(1-M.t-M.b);
-    var k=Math.min(cw/iw, ch/ih);
+    /* Work the size out from the HEIGHT first. A slip is tall and narrow, so the
+       height is what limits it, and sizing from the height lets us then shrink the
+       column to the slip's real width instead of leaving dead background beside it. */
+    var k=ch/ih;
+    if(iw*k>cw) k=cw/iw;                       // very narrow screen: fall back to the width
     page.style.transform='translate('+(-pw*M.l*k)+'px,'+(-ph*M.t*k)+'px) scale('+k+')';
     box.style.width=Math.floor(iw*k)+'px';
     box.style.height=Math.floor(ih*k)+'px';
     box.classList.add('fit');
+    /* Hand the leftover width back to the details column. */
+    var grid=document.querySelector('.stat3');
+    if(grid) grid.style.setProperty('--docw', Math.ceil(iw*k)+'px');
   }
   window.addEventListener('resize', fitSlip);
   window.addEventListener('orientationchange', function(){ setTimeout(fitSlip,250); });
